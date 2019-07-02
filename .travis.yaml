@@ -4,3 +4,7 @@ os:
   julia:
     - nightly
     - 1.1
+
+script: # the default script is equivalent to the following
+  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
+  - julia -e 'Pkg.clone(pwd()); Pkg.build("Hmc"); Pkg.test("Hmc"; coverage=true)';
