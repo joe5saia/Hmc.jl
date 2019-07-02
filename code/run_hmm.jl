@@ -29,19 +29,19 @@ end
 using StatFiles
 using DataFrames
 using Dates
-include("src/hmc.jl")
+include("../src/hmc.jl")
 using .Hmc
 
 
 rawdata = DataFrame(load("data/raw/sgs_data.dta"))
 rawdata[:date] = makedate.(rawdata[:date])
-startindex = findfirst(isequal(Date(2017, 11)), rawdata[:date])
+startindex = findfirst(isequal(Date(1980, 01)), rawdata[:date])
 endindex = findfirst(isequal(Date(2017, 12)), rawdata[:date])
 
 results = sampleAndForecastAll(Vector{Float64}(rawdata[series]),
     Vector{Date}(rawdata[:date]), 1:endindex, 1:12, startindex:endindex;
-    D = 3, burnin = 1_000, Nrun = 1_000, initialburn = 1_000, initialNrun = 1)
-saveresults(results, filesuffix, "data/output/$(filesuffix)/") 
+    D = 3, burnin = 1_000, Nrun = 10_000, initialburn = 100_000, initialNrun = 1)
+saveresults(results, "data/output/$(filesuffix)/") 
 
-stateresults = smoothStates(Vector{Float64}(rawdata[series]), rawdata[:date], 1:endindex; D = 3, burnin = 1_000, Nrun = 1_000)
+stateresults = smoothStates(Vector{Float64}(rawdata[series]), rawdata[:date], 1:endindex; D = 3, burnin = 10_000, Nrun = 10_000)
 savesmoothresults(stateresults, "data/output/$(filesuffix)/")
