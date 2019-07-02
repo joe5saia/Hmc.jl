@@ -6,6 +6,7 @@
 #SBATCH --time=10:00:00 # The time the job will take to run.
 #SBATCH --mem-per-cpu=5gb # The memory the job will use per cpu core.
 #SBATCH --output=output/slurm/slurm_offical.txt
+#SBATCH --chdir=/moto/sscc/projects/biasedexpectations
 
 
 module load julia

@@ -29,7 +29,7 @@ end
 using StatFiles
 using DataFrames
 using Dates
-include("../src/hmc.jl")
+include("/src/hmc.jl")
 using .Hmc
 
 
