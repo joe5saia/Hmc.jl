@@ -35,7 +35,7 @@ using .Hmc
 
 rawdata = DataFrame(load("data/raw/sgs_data.dta"))
 rawdata[:date] = makedate.(rawdata[:date])
-startindex = findfirst(isequal(Date(2017, 11)), rawdata[:date])
+startindex = findfirst(isequal(Date(1980, 1)), rawdata[:date])
 endindex = findfirst(isequal(Date(2017, 12)), rawdata[:date])
 
 results = sampleAndForecastAll(Vector{Float64}(rawdata[series]),
