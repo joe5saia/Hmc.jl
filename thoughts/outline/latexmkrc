@@ -1,0 +1,4 @@
+$always_view_file_via_temporary = 1;
+$pdf_mode = 1;
+$pdf_previewer = 'start evince';
+$pdflatex = " pdflatex -interaction nonstopmode %O %S"

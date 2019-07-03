@@ -1,0 +1,160 @@
+\documentclass[12pt]{article}
+\input{preamble.tex}
+
+\begin{document}
+
+Outline for estimating HMC model with Gibbs sampling
+
+\section*{Model Parameters:}
+\begin{itemize}
+  \item $d$: Number of states
+  \item $n$: number of observations
+\end{itemize}
+
+\section*{Notation:}
+\begin{itemize} 
+  \item $y_{1:k}$: sample of observables from period 1 to $k$
+  \item $a_{i:}$: row $i$ of matrix A
+\end{itemize}
+
+\section*{Variables:}
+\begin{itemize} 
+  \item $Y_k$: observable in period $k$. e.g. Inflation rate
+  \item $X_k$: State in period $k$. e.g. \{good, bad\}
+  \item $A=\{a_{ij}\}$: Transition matrix. $P(X_{k+1} = j|X_{k} = i)$ 
+  \item $\rho = \{\rho_i$\}: $\{P(X_0 = i)\}$. Probabiliy of initial states 
+  \item $\pi_{k}(s)$ : $P(X_k = s )$. State probabilties in the forward and backward recursions
+\end{itemize}
+
+\section*{Distribution for observables:}
+\begin{itemize}
+  \item $f(Y_k|X_k=i) = \N(\mu_i, \sigma^2_i)$
+\end{itemize}
+ 
+
+\section*{Priors:}
+\begin{itemize}
+  \item $a_i$: Dir(1,1,\ldots,1)
+  \item $\rho$: Dir(1,1,\ldots,1)
+  \item $\mu_i| \sigma_i^2$: $\N(\xi_i,\sigma_i^2/\nu_i)$
+  \item $\sigma_i^{2}$: $\Gamma^{-1}(\alpha_i,\beta_i)$
+  \item $\beta_i$: $\Gamma^{-1}(g,h)$
+\end{itemize}
+
+
+\section*{Hyper Parameter Values:} 
+\begin{itemize}
+  \item R = max($Y$) - min($Y$)
+  \item M = median(Y)
+  \item $\xi$ = [M-0.25*R, M, M+0.25*R] 
+  \item $\alpha$ = $1_d$
+  \item $g$ = $0.2  \ 1_d$
+  \item $h$ = $10/R^2 \ 1_d$
+  \item $\nu$ = $0.1 \ 1_d$
+\end{itemize}
+
+
+\section*{Conditional Distributions:}
+\begin{align}
+  \rho| \ldots &\sim Dir\big( 1, 1, \ldots, 1 \big) \\
+  a_{i:}| \ldots &\sim Dir\big( 1+n_{i1}, 1+n_{i2}, \ldots, 1+n_{id} \big) \\
+  &n_{ij} = \#\{ 1 < k \le n : X_{k-1} =i, X_k=j \} \nonumber \\
+  &\text{ i.e. number of transitions from state i to j} \nonumber \\
+  (\mu_i, \sigma^2_i) | \ldots &\sim \text{Normal-Inverse Gamma}(\xi, \nu, \alpha, \beta ) \\
+  \sigma_i^2 | \ldots &\sim \Gamma^{-1}\left( \alpha+\frac{1}{2}n,\beta + \frac{1}{2} \sum_{k=1}^n(y_k - \bar{y}_k)^2 + 
+  \frac{n_i \nu}{2(n_i + \nu)}(\bar{y}_i - \xi_i)^2 \right)\\
+  \mu_i| \sigma_i^2, \ldots  & \sim \N\left( \frac{n_i\bar{y}_k + \nu \xi_i}{n_i + \nu }, 
+        \frac{\sigma_i^2}{n_i + \nu} \right) \\
+  &n_i = \#\{ 1 \le k \le n: X_k = i\} \nonumber  \\
+  \beta | \ldots &\sim  \Gamma^{-1}\left( g+\alpha_i, h + \sigma^2 \right)
+\end{align}
+
+
+\section*{Forward Recursion:}
+Instead of sampling the states one at a time conditional on the parameters, 
+observables and all other states, we calculate the joint distribution of all the
+state variables and then sample from the states. This increases the mixing speed
+of the chain. We calculate this joint probability recursively with a forwrad-backward
+algorithm. 
+
+The forward recusion generates state probabilities based on data only 
+up to period $k$ and is used mostly to calculate the terminal state probabilities. 
+The forward recursion is calulated as follows. 
+\begin{align*}
+  p_{krs} &\propto p(X_{k-1}=r, X_{k}=s | Y_{1:k}, \theta) \\
+  &= \pi_{k-1}(r|\theta)a_{rs}P(Y_k|X_k = s, \theta)\\
+  \sum_{r} &\sum_{s} p_{krs} = 1 \text{ Normalization }\\
+  \pi_{k}(s|\theta) &= \sum_r p_{krs}\\
+  p_{1rs} &= \rho_r a_{rs} P(Y|X_k = s, \theta) 
+\end{align*}
+
+\section*{Stochastic Backward Recursion:}
+The stochastic backward recustion calculates the state probabilties 
+for each observation based on the entire sample. 
+
+\begin{align*}
+  P'_k &= (p'_{kij}) \\
+  p'_{krs} &= p(X_{k-1}=r, X_{k}=s | Y_{1:n}, \theta) \\
+  p'_{krs} &= p_{krs}\frac{\pi'_k(s | \theta)}{\pi_k(s|\theta)}\\
+  \pi'_{k-1}(r|\theta) &= \sum_s p'_{krs}\\
+  \pi'_{N}(r|\theta) &= \pi_{N}(r | \theta)
+\end{align*}
+
+\section*{Algorithm for drawing $X_k$:}
+This nonstochastic backward alogrithm gives us a sequence of states for a given Gibbs 
+sweep instead of a sequence of state probabilities. 
+
+\begin{enumerate}
+  \item Draw $X_N$ from $\pi_{N}$
+  \item Draw $X_{N-1}$ from the Categorical distribution with probabilities
+    propotional to the $X_{N}$ column of $P_N$
+  \item Iterate backwards until full sample of $X$'s have been sampled
+\end{enumerate}
+
+\newpage
+\section*{Gibbs Sweep Steps}
+\begin{enumerate}
+  \item draw $\mu_i$'s and $\sigma_i$'s from Normal-Inverse Gamma distribution 
+  via gibbs sampling. 
+  \item Update $\beta_i$'s
+  \item update $\rho$
+  \item update $A$
+  \item Forward update $P$ and $\pi$
+  \item Backward update $P'$ and $\pi$'
+  \item Reorder the states so that the $\mu_i$'s are in increasing order
+  \item Update $X$
+\end{enumerate}
+
+\section*{Forecasts}
+To generate the ``real time'', h-period ahead foreacst for date $k$ with no signals about the future,
+we estimate
+the model based on data from from the begining of the sample and ending on date $k$. 
+After the Gibbs sampler has been run a sufficient number of times we calculate the 
+state probabilites by averaging over the state probabilties calculated in the stochastic
+backward recursion during each Gibbs sweep. In particular, this gives us the estiamted 
+state probabiity for date $k$, $\pi_k(s)$.  We then calculate the probabilty of being
+in each state $h$ periods ahead as $\pi_{k+h}(s) = \pi_{k}(s) A^h $  where 
+$\pi_{k}(s)$ is a row vector of state probabilties. The point forecast for expected 
+infaltion in period $k+h$ is calculated as 
+$\E_k(Y_{k+h}) = \sum_{s \in S} \E_k(Y_{k+h}|X_{k+h}=s) \pi_{k+h}(s) = \sum_{s \in S} \mu_s \pi_{k+h}(s) $
+
+
+
+\section*{Adding 1 Period Ahead Signals}
+In the model where the forecaster's information set in period $k$ is the history 
+of inflation and a 1 period ahead noisy signal we would need to make a few changes. 
+We would essentially need to run the model for one extra period and treat the signal 
+as another observation, making standard adjustments for calculating the mean and variance 
+of each state's inflation for the fact that the last observation is a noisy signal. Tbe
+forward recursion calculation would also need to be adjusted for the fact that 
+in period $k$ we have a noisy signal so the emision probabilty
+ $P(Y_{k+1} | X_{k+1}=s, \theta) $ is calculated 
+ differently than the first $k$ emision probabilites.
+
+ For the forecasts we now have some information about the state $k+1$ so the model
+ will give us an informed estimate for the state probabilties in period $k+1$,
+ $\pi_{k+1}(s)$. To calculate the forecast for period $k+h$ we would do the same as 
+ before except $\pi_{k+h}(s) = \pi_{k+1}(s) A^{h-1} $. 
+
+\end{document}
+

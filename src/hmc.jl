@@ -10,8 +10,6 @@ using DataFrames
 using Dates
 using CSV
 
-
-
 struct HyperParams{T}
     """
     Struct to hold hyper parameters/ model specifications that don't change
