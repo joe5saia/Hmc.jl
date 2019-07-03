@@ -1,6 +1,6 @@
 using Dates
 using Test
-include("src/hmc.jl")
+include("../src/hmc.jl")
 using .Hmc
 
 #Number of observations
