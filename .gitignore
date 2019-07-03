@@ -1,2 +1,4 @@
 scratch/commandtest.jl
 slurm*
+/.swp
+scratch/*
