@@ -10,7 +10,7 @@ Outline for estimating HMC model with Gibbs sampling
   \item $d$: Number of states
   \item $n$: number of observations
 \end{itemize}
-
+ 
 \section*{Notation:}
 \begin{itemize} 
   \item $y_{1:k}$: sample of observables from period 1 to $k$
@@ -155,6 +155,49 @@ in period $k$ we have a noisy signal so the emision probabilty
  will give us an informed estimate for the state probabilties in period $k+1$,
  $\pi_{k+1}(s)$. To calculate the forecast for period $k+h$ we would do the same as 
  before except $\pi_{k+h}(s) = \pi_{k+1}(s) A^{h-1} $. 
+
+
+\subsection*{Changes Made}
+
+In this section the state indexes $i$ are supressed for clarity. 
+The signal structure is assumed to be 
+\begin{align*}
+  S_k &= Y_k + \epsilon_k \\
+  Y_k &\sim N(\mu, \sigma^2)\\
+  \epsilon_k &\sim N(0, \kappa \sigma^2)\\
+  S_k &\sim N(\mu, (1+\kappa) \sigma^2)
+\end{align*}
+
+There are $n$ direct measurments of $y_k$ and $m$ measurements of the noisy signal
+$s_k$
+
+The postior for the mean of the observables is given by
+\begin{align*}
+  \mu | \sigma^2 ... &\sim \N(\zeta, \omega ) \\
+  \tau_y &= \frac{n}{\sigma^2} \\
+  \tau_0 &= \frac{\nu}{\sigma^2} \\
+  \tau_y &= \frac{m}{(1 + \kappa) \sigma^2}\\
+  \zeta & \equiv \frac{\tau_y \bar{y} + \tau_0 \xi + \tau_s \bar{s}}{\tau_y  + \tau_0  + \tau_s}\\
+  \zeta & \equiv \frac{n \bar{y} + \nu \xi + \frac{m}{1+\kappa} \bar{s}}{n + \nu + \frac{m}{1+\kappa}} \\
+  \omega &= \frac{\sigma^2}{n + \nu + \frac{m}{1+\kappa}}
+\end{align*}
+
+The postior for the variance $\sigma^2$ is 
+
+\begin{align*}
+  \sigma_i^2 &| \ldots \sim \Gamma^{-1}(\tilde{\alpha}, \tilde{\beta}) \\
+  \tilde{\alpha} &= \alpha +\frac{1}{2}n + \frac{1}{2}m \\
+  \tilde{\beta} &= 
+  \beta + \frac{1}{2} \sum_{k=1}^n(y_k - \bar{y}_k)^2 + \frac{1}{2(1+\kappa)}\sum_{k=n+1}^m(y_k - \bar{y})^2 + 
+  \frac{\left(n + \frac{m}{1+\kappa}\right) \nu}{2(n + \frac{m}{1+\kappa} + \nu)}(\bar{y} - \xi)^2 
+\end{align*}
+
+In the forward recursion step we need to adjust the emission probabilites for the signals
+which is straight forwadly done by useing the modified variance of the signals.
+\begin{align*}
+  y_k | x_k = s, \theta &\sim  \N( \mu , \sigma^2)\\
+  s_k | x_k = s, \theta &\sim  \N( \mu , (1+\kappa)\sigma^2)
+\end{align*}
 
 \end{document}
 
