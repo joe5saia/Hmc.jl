@@ -11,7 +11,7 @@
 
 module load julia
 
-julia --project=. code/run_hmm.jl alter
+julia --project=. run_hmm.jl alter
  
 
 #End of script

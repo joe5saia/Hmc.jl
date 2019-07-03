@@ -11,8 +11,4 @@
 
 module load julia
 
-julia --project=. code/run_hmm.jl official
-#julia --project build.jl
- 
-
-#End of script
+julia --project=. run_hmm.jl official
