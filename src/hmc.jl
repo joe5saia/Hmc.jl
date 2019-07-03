@@ -16,13 +16,15 @@ struct HyperParams{T}
     """
     D::Int # Number of states
     N::Int # Number of observations
+    M::Int # Number of observations that are signals
+    κ::Float64 ## relative precision of signals 
     ξ::SVector{T,Float64} # Prior for means
     α::SVector{T,Float64} # sample size for prior of σ²  
     g::SVector{T,Float64} # sample size for β hyper prior
     h::SVector{T,Float64} # scale for for β hyper prior
     ν::SVector{T,Float64} # sample size for prior of means 
-    function HyperParams{T}(D, N, ξ, α, g, h, ν) where {T}
-        new(D, N, ξ, α, g, h, ν)
+    function HyperParams{T}(D, N, M, κ, ξ, α, g, h, ν) where {T}
+        new(D, N, M, κ, ξ, α, g, h, ν)
     end
 end
 
@@ -31,8 +33,7 @@ end
     
 Returns a HyperParam struct 
 """
-function HyperParams(Y::AbstractVector{Float64}, D::Int64)
-
+function HyperParams(Y::AbstractVector{Float64}, D::Int64, M::Int64=0, κ::Float64=1.0)
     N = size(Y, 1)
     R = maximum(Y) - minimum(Y)
     #ξ = SVector{D}(range(median(Y) - 0.25*R, median(Y) + 0.25*R, length=D)) # small α means this doesn't matter much
@@ -41,7 +42,7 @@ function HyperParams(Y::AbstractVector{Float64}, D::Int64)
     g = SVector{D}([0.2 for i in 1:D])
     h = SVector{D}([10/R^2 for i in 1:D])
     ν = SVector{D}([0.1 for i in 1:D])
-    return HyperParams{D}(D, N, ξ, α, g, h, ν)
+    return HyperParams{D}(D, N, M, κ, ξ, α, g, h, ν)
 end
 
 function makeParams(Y::AbstractArray{Float64,1}, D::Int; μ₀=Float64[], A₀=Float64[], σ₀=Float64[], ρ₀=Float64[], β₀=Float64[])
@@ -120,38 +121,67 @@ function update_μσ!(μ::AbstractVector{Float64}, σ::AbstractVector{Float64}, 
     Draw σ^2 from inverseΓ(a,b) then draw  μ|σ from N(m,s)
     """
     N = hp.N
+    M = hp.M
+    κ = hp.κ
     D = hp.D
     ν = hp.ν
     ξ = hp.ξ
     α = hp.α
+    Ni = zeros(eltype(X),D) # Number of states in i
+    Mi = zeros(eltype(X),D) # number of signals in i
+    S = zeros(eltype(Y),D) # sum of observables in i
+    Sm = zeros(eltype(Y),D) # sum of signals in i
+    S2 = zeros(eltype(Y),D) # sum of (observables - ybar)^2 in i
+    Sm2 = zeros(eltype(Y),D) # sum of (signals - sbar)^2 in i
     ## Statistics 
+    for t in 1:N-M
+        i = X[t]
+        Ni[i] += oneunit(i)
+        S[i] += Y[t]
+    end
+    ybar = S./Ni
+    if M > 0
+        for t in 1+N-M:N
+            i = X[t]
+            Mi[i] += oneunit(i)
+            Sm[i] += Y[t]
+        end
+    end
+    sbar = Sm./Mi
+    totalbar = @. (S + Sm)/(Ni + Mi)
+    for t in 1:N-M
+        i = X[t]
+        S2[i] += (Y[t] - ybar[i])^2
+    end
+    if M > 0
+        for t in 1+N-M:N
+            i = X[t]
+            Sm2[i] += (Y[t] - sbar[i])^2
+        end
+    end
     for i in 1:D
-        Ni = 0
-        Si = 0.0
-        S2i = 0.0
-        for t in 1:N
-            if X[t] == i
-                Ni += 1
-                Si += Y[t]
-            end
+        if Ni[i] == 0
+            S[i] = 0.0
+            S2[i] = 0.0
+            ybar[i] = 0.0
         end
-        ymeani = Si/Ni
-        for t in 1:N
-            if X[t] == i
-                S2i += (Y[t] - ymeani)^2
-            end
+        if Mi[i] == 0
+            Sm[i] = 0.0
+            Sm2[i] = 0.0
+            sbar[i] = 0.0
         end
-        if isequal(Ni, 0) 
-            Si = 0.0
-            ymeani = 0.0
-            S2i = 0.0
-        end
-        a = α[i] + 0.5*Ni
-        b = β[i] + 0.5*S2i + 0.5*Ni*ν[i]/(Ni + ν[i])*(ymeani - ξ[i]).^2
-        σ[i] = rand( Distributions.InverseGamma(a, b) )
-        m = (Si + ν[i]*ξ[i])/(Ni + ν[i])
-        s =  sqrt(σ[i]/(Ni + ν[i]))
-        μ[i] =  rand( Distributions.Normal(m, s) )
+    end
+    Meff = Mi./(1+κ) # effective number of signals
+    Neff = Ni .+ Meff # effective number of total observations
+    a = @. α + 0.5*Ni + 0.5*Mi
+    b = @. β + 0.5*S2 + 0.5/(1+κ)*Sm2 + 0.5*Neff*ν/(Neff + ν)*(totalbar - ξ).^2
+    for i in 1:D
+        σ[i] = rand( Distributions.InverseGamma(a[i], b[i]) )
+    end
+        m = @. (S + sbar * Meff + ν*ξ)/(Neff + ν)
+        s =  @. sqrt(σ/(Neff + ν))
+    for i in 1:D
+        μ[i] =  rand( Distributions.Normal(m[i], s[i]) )
     end
 end
 
@@ -398,7 +428,7 @@ function sampleAndForecastAll(rawdata::AbstractVector{Float64}, dates::AbstractV
         for i in 1:min(length(X), length(Xt)) # copy over states assuming same starting date
             X[i] = Xt[i]
         end
-        hp = HyperParams(Y, D)
+        hp = HyperParams(Y, D, 0, 1.0)
         parpost = gibbssample!(A, ρ, μ, σ, β, πft, πbt, Pft, Pbt, X, hp, Y;
                                burnin = burnin, Nrun = Nrun)
         ## Save results
@@ -428,7 +458,7 @@ function smoothStates(rawdata::AbstractVector{Float64}, dates::AbstractVector{Da
     """
     Y0 = rawdata[dataRange]
     (A, ρ, μ, σ, β, πf, πb, Pf, Pb, X) = makeParams(Y0, D)
-    hp0 = HyperParams(Y0, D)
+    hp0 = HyperParams(Y0, D, 0, 1.0)
     parpost = gibbssample!(A, ρ, μ, σ, β, πf, πb, Pf, Pb, X, hp0,
         Y0; burnin = burnin, Nrun = Nrun)
     
