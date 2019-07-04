@@ -33,7 +33,7 @@ end
     
 Returns a HyperParam struct 
 """
-function HyperParams(Y::AbstractVector{Float64}, D::Int64; M::Int64=0, κ::Float64=1)
+function HyperParams(Y::AbstractVector{Float64}, D::Int64; M::Int64=0, κ::Float64=1.0)
 
     N = size(Y, 1)
     R = maximum(Y) - minimum(Y)
@@ -417,7 +417,7 @@ function sampleAndForecastAll(rawdata::AbstractVector{Float64}, dates::AbstractV
         for i in 1:min(length(X), length(Xt)) # copy over states assuming same starting date
             X[i] = Xt[i]
         end
-        hp = HyperParams(Y, D)
+        hp = HyperParams(Y, D, 0, 1.0)
         parpost = gibbssample!(A, ρ, μ, σ, β, πft, πbt, Pft, Pbt, X, hp, Y;
                                burnin = burnin, Nrun = Nrun)
         ## Save results
@@ -447,7 +447,7 @@ function smoothStates(rawdata::AbstractVector{Float64}, dates::AbstractVector{Da
     """
     Y0 = rawdata[dataRange]
     (A, ρ, μ, σ, β, πf, πb, Pf, Pb, X) = makeParams(Y0, D)
-    hp0 = HyperParams(Y0, D)
+    hp0 = HyperParams(Y0, D, 0, 1.0)
     parpost = gibbssample!(A, ρ, μ, σ, β, πf, πb, Pf, Pb, X, hp0,
         Y0; burnin = burnin, Nrun = Nrun)
     
