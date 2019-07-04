@@ -33,8 +33,7 @@ end
     
 Returns a HyperParam struct 
 """
-function HyperParams(Y::AbstractVector{Float64}, D::Int64; M::Int64=0, κ::Float64=1.0)
-
+function HyperParams(Y::AbstractVector{Float64}, D::Int64, M::Int64=0, κ::Float64=1.0)
     N = size(Y, 1)
     R = maximum(Y) - minimum(Y)
     #ξ = SVector{D}(range(median(Y) - 0.25*R, median(Y) + 0.25*R, length=D)) # small α means this doesn't matter much
@@ -152,12 +151,24 @@ function update_μσ!(μ::AbstractVector{Float64}, σ::AbstractVector{Float64}, 
     totalbar = @. (S + Sm)/(Ni + Mi)
     for t in 1:N-M
         i = X[t]
-        S2[i] += (Y[t] - ybar)^2
+        S2[i] += (Y[t] - ybar[i])^2
     end
     if M > 0
         for t in 1+N-M:N
             i = X[t]
-            Sm2[i] += (Y[t] - sbar)^2
+            Sm2[i] += (Y[t] - sbar[i])^2
+        end
+    end
+    for i in 1:D
+        if Ni[i] == 0
+            S[i] = 0.0
+            S2[i] = 0.0
+            ybar[i] = 0.0
+        end
+        if Mi[i] == 0
+            Sm[i] = 0.0
+            Sm2[i] = 0.0
+            sbar[i] = 0.0
         end
     end
     Meff = Mi./(1+κ) # effective number of signals
