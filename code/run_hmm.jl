@@ -55,29 +55,40 @@ rawdata[:date] = makedate.(rawdata[:date])
 
 ## Set data range to use in samples
 startindex = findfirst(isequal(Date(1980, 1)), rawdata[:date])
-endindex = findfirst(isequal(Date(2017, 12)), rawdata[:date])
+endindex = findfirst(isequal(Date(1980, 12)), rawdata[:date])
+
+## Run parameters
+Nrun = 3_000
+burnin = 1_000
+initialNrun = 1
+initialburn = 100_000
+signalLen = 1
+D = 3
+noiseSamples = 300
+
 
 ## Estimate model for each horizion we want with no signals
-results = sampleSignals(Vector{Float64}(rawdata[series]), Vector{Date}(rawdata[:date]), 1, 12:12, startindex:endindex;
-    D = 3, burnin = 10_000, Nrun = 10_000, initialburn = 100_000, initialNrun = 1, signalLen = 0, noise = 0.5, 
-    noiseSamples= 0)
+results = sampleSignals(Vector{Float64}(rawdata[series]), Vector{Date}(rawdata[:date]), 1, 12:12, startindex:12:endindex;
+    D = D, burnin = burnin, Nrun = Nrun, initialburn = initialburn, initialNrun = initialNrun, signalLen = 0, noiseSamples = 0,
+    noise = 0.0)
 saveresults(results, "data/output/$(filesuffix)/") 
 
 ## Estimate model for each horizon we want with signals for different noise levels
 results = sampleSignals(Vector{Float64}(rawdata[series]), Vector{Date}(rawdata[:date]), 1, 12:12, startindex:12:endindex;
-    D = 3, burnin = 10_000, Nrun = 10_000, initialburn = 100_000, initialNrun = 1, signalLen = 1, noise = 0.5, 
-    noiseSamples= 300)
+    D = D, burnin = burnin, Nrun = Nrun, initialburn = initialburn, initialNrun = initialNrun, signalLen = signalLen, noiseSamples = noiseSamples,
+    noise = 1.0)
 saveresults(results, "data/output/signals/$(filesuffix)/low/") 
 
+
 results = sampleSignals(Vector{Float64}(rawdata[series]), Vector{Date}(rawdata[:date]), 1, 12:12, startindex:12:endindex;
-    D = 3, burnin = 10_000, Nrun = 10_000, initialburn = 100_000, initialNrun = 1, signalLen = 1, noise = 1.5, 
-    noiseSamples= 300)
+    D = D, burnin = burnin, Nrun = Nrun, initialburn = initialburn, initialNrun = initialNrun, signalLen = signalLen, noiseSamples = noiseSamples,
+    noise = 3.0)
 saveresults(results, "data/output/signals/$(filesuffix)/mid/") 
 
 results = sampleSignals(Vector{Float64}(rawdata[series]), Vector{Date}(rawdata[:date]), 1, 12:12, startindex:12:endindex;
-    D = 3, burnin = 10_000, Nrun = 10_000, initialburn = 100_000, initialNrun = 1, signalLen = 1, noise = 3.0, 
-    noiseSamples = 300)
+    D = D, burnin = burnin, Nrun = Nrun, initialburn = initialburn, initialNrun = initialNrun, signalLen = signalLen, noiseSamples = noiseSamples,
+    noise = 7.0)
 saveresults(results, "data/output/signals/$(filesuffix)/high/") 
 
-stateresults = smoothStates(Vector{Float64}(rawdata[series]), rawdata[:date], 1:endindex; D = 3, burnin = 100_000, Nrun = 10_000)
+stateresults = smoothStates(Vector{Float64}(rawdata[series]), rawdata[:date], 1:endindex; D = 3, burnin = burnin, Nrun = Nrun)
 savesmoothresults(stateresults, "data/output/$(filesuffix)/")

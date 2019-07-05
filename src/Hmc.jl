@@ -142,12 +142,10 @@ function update_μσ!(μ::AbstractVector{Float64}, σ::AbstractVector{Float64}, 
         S[i] += Y[t]
     end
     ybar = S./Ni
-    if M > 0
-        for t in 1+N-M:N
-            i = X[t]
-            Mi[i] += oneunit(i)
-            Sm[i] += Y[t]
-        end
+    for t in 1+N-M:N
+        i = X[t]
+        Mi[i] += oneunit(i)
+        Sm[i] += Y[t]
     end
     sbar = Sm./Mi
     totalbar = @. (S + Sm)/(Ni + Mi)
@@ -155,11 +153,9 @@ function update_μσ!(μ::AbstractVector{Float64}, σ::AbstractVector{Float64}, 
         i = X[t]
         S2[i] += (Y[t] - ybar[i])^2
     end
-    if M > 0
-        for t in 1+N-M:N
-            i = X[t]
-            Sm2[i] += (Y[t] - sbar[i])^2
-        end
+    for t in 1+N-M:N
+        i = X[t]
+        Sm2[i] += (Y[t] - sbar[i])^2
     end
     for i in 1:D
         if Ni[i] == 0
@@ -392,7 +388,7 @@ function gibbssample!(A::AbstractMatrix{Float64},
     samples = Vector{Any}(undef,Nrun)
     for i in 1:Nrun 
         gibbssweep!(μ, σ, β, ρ, A, πf, πb, Pf, Pb, X, hp::HyperParams, Y);        
-        samples[i] = (μ=μ, σ=σ, β=β, ρ=ρ, A=A, πf=πf, πb=πb)
+        samples[i] = (μ=copy(μ), σ=copy(σ), β=copy(β), ρ=copy(ρ), A=copy(A), πf=copy(πf), πb=copy(πb))
     end
     return samples
 end
@@ -564,7 +560,7 @@ end
 
 
 function sampleSignals(rawdata::AbstractVector{Float64}, dates::AbstractVector{Date}, startIndex, horizons, filterRange;
-    D::Int=2, burnin = 1_000, Nrun = 1_000, initialburn = 1_000, initialNrun = 1_000, signalLen::Int64 = 0, noise = 0.0, 
+    D::Int=2, burnin = 1_000, Nrun = 1_000, initialburn = 1_000, initialNrun = 1_000, signalLen::Int64 = 0, noise::Float64 = 0.0, 
     noiseSamples::Int64 = 1)
 """
 Function to run full HMM estimation for a range of samples
@@ -595,7 +591,7 @@ Returns the forecasts, and postior means of the parameters for each run
 
     ## Real sampling 
     for (indx,j) in enumerate(filterRange)
-        println("Model run $(indx)/$(filterRange[end] - filterRange[1]+1). End date: $(dates[j]). End Index $j")
+        println("Model run $(indx)/$(length(filterRange)). End date: $(dates[j]). End Index $j")
 
         ## Solve model without signal noise to starting parameters
         Y = rawdata[startIndex:j+signalLen]
@@ -615,36 +611,33 @@ Returns the forecasts, and postior means of the parameters for each run
         @sync @distributed for i in 1:noiseSamples
             ## Do Monte Carlo sampling 
             Y = rawdata[startIndex:j+signalLen]
-            Y[end-signalLen:end] .+= rand(Normal(0,noiseσ))
+            Y[end-signalLen+1:end] .+= rand(Normal(0,noiseσ))
             hp = HyperParams(Y, D, signalLen, noise)
             
             # copy over states
-            Xt = copy(X)
-            (At, ρt, μt, σt, βt, πft, πbt, Pft, Pbt, Xs) = makeParams(Y, D)
-            for i in 1:min(length(Xs), length(Xt)) 
-                Xs[i] = Xt[i]
-            end
-
+            (At, ρt, μt, σt, βt, πft, πbt, Pft, Pbt, Xt) = makeParams(Y, D)
+   
             ## Make MC run specific copy of parameters
             As = copy(A)
             ρs = copy(ρ)
             μs = copy(μ)
             σs = copy(σ)
             βs = copy(β)
+            Xs = copy(X)
 
             ## Run sampler
             sample = gibbssample!(As, ρs, μs, σs, βs, πft, πbt, Pft, Pbt, Xs, hp, Y; burnin = burnin, Nrun = Nrun)
             
+
             ## Save results
-            for m in 1:Nrun
-                l = filterindexs[(i-1)*Nrun+m]
+            for m in 1:length(sample)
+               l = filterindexs[(i-1)*Nrun+m]
                 obsdates[l] = dates[j]
                 μresults[l, :] = sample[m].μ
                 σresults[l, :] = sample[m].σ
                 Aresults[l, :] = sample[m].A[:]
                 πbresults[l, :] = sample[m].πb[end,:]
                 for (i,h) in enumerate(horizons)
-                    # println("Updating forecast horizon $h")
                     forecasts[l, 2*(i-1)+1] = forecast((A = sample[m].A, πb=sample[m].πb, μ=sample[m].μ), hp, h, rawdata[j+h])[1]
                     forecasts[l, 2*(i-1)+2] = forecast((A = sample[m].A, πb=sample[m].πb, μ=sample[m].μ), hp, h, rawdata[j+h])[2]
                 end
