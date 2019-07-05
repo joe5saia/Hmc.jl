@@ -3,6 +3,9 @@ slurm*
 /.swp
 scratch/*
 
+## Don't save huge csv files
+/data/output/signals/*
+
 # Latex Stuff
 *.aux
 *.bbl
