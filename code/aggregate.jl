@@ -30,6 +30,7 @@ end
 for noise in ["low", "mid", "high"]
     if ispath("data/output/signals/$(infseries)/$(noise)")
         for series in ["forecasts", "means", "state_probs", "trans_probs", "variance"]
+            println("Aggregating noise level $(noise), series, $(series)")
             df = CSV.read("data/output/signals/$(infseries)/$(noise)/filtered_$(series).csv")
             df2 = aggregate(df, :Date, mean)
             CSV.write("data/output/signals/$(infseries)/$(noise)/filtered_$(series)_summary.csv", df2)
@@ -40,6 +41,7 @@ end
 ## Loop over files with gibbs draws we want to aggregate and do aggregation 
 if ispath("data/output/$(infseries)")
     for series in ["forecasts", "means", "state_probs", "trans_probs", "variance"]
+        println("Aggregating, series, $(series) with no noise")
         df = CSV.read("data/output/$(infseries)/filtered_$(series).csv")
         df2 = aggregate(df, :Date, mean)
         CSV.write("data/output/$(infseries)/filtered_$(series)_summary.csv", df2)
