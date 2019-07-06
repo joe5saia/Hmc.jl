@@ -68,27 +68,27 @@ noiseSamples = 300
 
 
 ## Estimate model for each horizion we want with no signals
-results = sampleSignals(Vector{Float64}(rawdata[series]), Vector{Date}(rawdata[:date]), 1, 12:12, startindex:12:endindex;
-    D = D, burnin = burnin, Nrun = Nrun, initialburn = initialburn, initialNrun = initialNrun, signalLen = 0, noiseSamples = 0,
+results = sampleSignals(Vector{Float64}(rawdata[series]), Vector{Date}(rawdata[:date]), 1, 12:12, startindex:endindex;
+    D = D, burnin = burnin, Nrun = Nrun, initialburn = initialburn, initialNrun = initialNrun, signalLen = 0, noiseSamples = 3,
     noise = 0.0)
 saveresults(results, "data/output/$(filesuffix)/") 
 
 ## Estimate model for each horizon we want with signals for different noise levels
 println("Running low noise sample")
-results = sampleSignals(Vector{Float64}(rawdata[series]), Vector{Date}(rawdata[:date]), 1, 12:12, startindex:12:endindex;
+results = sampleSignals(Vector{Float64}(rawdata[series]), Vector{Date}(rawdata[:date]), 1, 12:12, startindex:endindex;
     D = D, burnin = burnin, Nrun = Nrun, initialburn = initialburn, initialNrun = initialNrun, signalLen = signalLen, noiseSamples = noiseSamples,
     noise = 1.0)
 saveresults(results, "data/output/signals/$(filesuffix)/low/") 
 
 
 println("Running mid noise sample")
-results = sampleSignals(Vector{Float64}(rawdata[series]), Vector{Date}(rawdata[:date]), 1, 12:12, startindex:12:endindex;
+results = sampleSignals(Vector{Float64}(rawdata[series]), Vector{Date}(rawdata[:date]), 1, 12:12, startindex:endindex;
     D = D, burnin = burnin, Nrun = Nrun, initialburn = initialburn, initialNrun = initialNrun, signalLen = signalLen, noiseSamples = noiseSamples,
     noise = 3.0)
 saveresults(results, "data/output/signals/$(filesuffix)/mid/") 
 
 println("Running high noise sample")
-results = sampleSignals(Vector{Float64}(rawdata[series]), Vector{Date}(rawdata[:date]), 1, 12:12, startindex:12:endindex;
+results = sampleSignals(Vector{Float64}(rawdata[series]), Vector{Date}(rawdata[:date]), 1, 12:12, startindex:endindex;
     D = D, burnin = burnin, Nrun = Nrun, initialburn = initialburn, initialNrun = initialNrun, signalLen = signalLen, noiseSamples = noiseSamples,
     noise = 7.0)
 saveresults(results, "data/output/signals/$(filesuffix)/high/") 
