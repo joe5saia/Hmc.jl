@@ -12,4 +12,4 @@
 module load julia
 
 julia --project=. -p 24 run_hmm.jl official
-
+julia --project=. aggregate.jl official
