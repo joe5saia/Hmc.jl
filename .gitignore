@@ -13,25 +13,6 @@ scratch/*
 *.synctex.gz
 *.fls
 
-## Don't track the huge output csvs
-data/output/signals/official/low/filtered_means.csv
-data/output/signals/official/low/filtered_variance.csv
-data/output/signals/official/low/filtered_state_probs.csv
-data/output/signals/official/low/filtered_forecasts.csv
-data/output/signals/official/low/filtered_trans_probs.csv
-data/output/signals/official/mid/filtered_means.csv
-data/output/signals/official/mid/filtered_variance.csv
-data/output/signals/official/mid/filtered_state_probs.csv
-data/output/signals/official/mid/filtered_forecasts.csv
-data/output/signals/official/mid/filtered_trans_probs.csv
-data/output/signals/official/high/filtered_means.csv
-data/output/signals/official/high/filtered_variance.csv
-data/output/signals/official/high/filtered_state_probs.csv
-data/output/signals/official/high/filtered_forecasts.csv
-data/output/signals/official/high/filtered_trans_probs.csv
-
-
-
 data/output/signals/alter/low/filtered_means.csv
 data/output/signals/alter/low/filtered_variance.csv
 data/output/signals/alter/low/filtered_state_probs.csv

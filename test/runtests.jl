@@ -3,12 +3,8 @@ using Test
 using Statistics
 using Distributed
 
-@everywhere root_dir = "/research/hmc/"
-cd(root_dir)
-@everywhere using Pkg
-@everywhere Pkg.activate(root_dir)
-@everywhere push!(LOAD_PATH, "$(root_dir)src")
-@everywhere using Hmc
+push!(LOAD_PATH, "src")
+using Hmc
 
 #Number of observations
 T = 5000
