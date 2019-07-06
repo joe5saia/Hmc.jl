@@ -2,8 +2,6 @@ using Dates
 using Test
 using Statistics
 using Distributed
-
-push!(LOAD_PATH, "src")
 using Hmc
 
 #Number of observations
