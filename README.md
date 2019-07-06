@@ -2,6 +2,17 @@
 
 This repo contains code to estimate the implementation of the Hiden Markov Chain model.
 
+## Getting Started
+To download the needed packages do the following
+
+1. Start julia
+2. Enter the Pkg manager prompt by pressing `]`
+3. Enter `activate .` to activate project
+4. Enter `instantiate` to download needed packages
+
+From now one start julia with the project flag from the root directory, 
+`julia --project=.` to load the needed packages. 
+
 ## File Structure
 
 * `code` contains scripts to run stuff. Some of these are softlinked into the project root directory to
