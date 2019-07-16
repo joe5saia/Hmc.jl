@@ -73,7 +73,6 @@ signalLen = 1
 D = 3
 noiseSamples = 3
 
-if false
 ## Estimate model for each horizion we want with no signals
 println("Estimating base model without Signals. Date range is $(rawdata[startindex, :date]) to $(rawdata[dateindex, :date])")
 !ispath("data/output/$(series)/") && mkpath("data/output/$(series)/")
@@ -81,16 +80,12 @@ estimateSignal(Vector{Float64}(rawdata[dataseries]), Vector{Date}(rawdata[:date]
     D = D, burnin = burnin, Nrun = Nrun, signalburnin = signalburnin, signalNrun = signalNrun, signalLen = 0, noise = 0.0, 
     noiseSamples = noiseSamples, σsignal = Float64[], savenosignal= true, series = series)
 
-end
 
-if true
 ## Estimate model for each horizon we want with signals for different noise levels
-#for noiselevel in [1.0 3.0 7.0]
-for noiselevel in [1.0 ]
+for noiselevel in [1.0 3.0 7.0]
     println("Running noise = $(noiselevel) sample")
     !ispath("data/output/signals/$(series)/noise_$(noiselevel)") && mkpath("data/output/signals/$(series)/noise_$(noiselevel)")
     estimateSignal(Vector{Float64}(rawdata[dataseries]), Vector{Date}(rawdata[:date]); startIndex=startindex, endIndex=dateindex, horizons=12,
         D = D, burnin = burnin, Nrun = Nrun, signalburnin = signalburnin, signalNrun = signalNrun, signalLen = 1, noise = noiselevel, 
         noiseSamples = noiseSamples, σsignal= Float64[], savenosignal = false, series = series)
-end
 end
