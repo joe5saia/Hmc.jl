@@ -1,5 +1,5 @@
 module Hmc
-export makedate, sampleAndForecastAll, smoothStates, saveresults, savesmoothresults, generateData, sampleSignals
+export makedate, sampleAndForecastAll, smoothStates, saveresults, savesmoothresults, generateData, sampleSignals, estimateSignal
 
 using Distributions
 using Random
@@ -75,8 +75,8 @@ function makeParams(Y::AbstractArray{Float64,1}, D::Int; μ₀=Float64[], A₀=F
         X[i] = findmax(pdf.(Normal.(μ, σ), Y[i] ))[2]
     end
     for i in 1:N
-        π[i,:] .= 1.0 / D
-        π2[i,:] .= 1.0 / D
+        π[i,:] .= pdf.(Normal.(μ, σ), Y[i] )
+        π2[i,:] = π[i,:]
         P[i,:,:] .= 1.0 / D^2
         P2[i,:,:] .= 1.0 / D^2
     end
@@ -132,6 +132,9 @@ function update_μσ!(μ::AbstractVector{Float64}, σ::AbstractVector{Float64}, 
     Ni = zeros(eltype(X),D) # Number of states in i
     Mi = zeros(eltype(X),D) # number of signals in i
     S = zeros(eltype(Y),D) # sum of observables in i
+    ybar = zeros(eltype(Y),D) # mean of observables in i
+    sbar = zeros(eltype(Y),D) # mean of signals in i
+    totalbar = zeros(eltype(Y),D) # mean of signals in i
     Sm = zeros(eltype(Y),D) # sum of signals in i
     S2 = zeros(eltype(Y),D) # sum of (observables - ybar)^2 in i
     Sm2 = zeros(eltype(Y),D) # sum of (signals - sbar)^2 in i
@@ -141,14 +144,32 @@ function update_μσ!(μ::AbstractVector{Float64}, σ::AbstractVector{Float64}, 
         Ni[i] += oneunit(i)
         S[i] += Y[t]
     end
-    ybar = S./Ni
+    for i in 1:D
+        if Ni[i] > 0
+            ybar[i] = S[i]./Ni[i]
+        else
+            ybar[i] = zero(ybar[1])
+        end
+    end
     for t in 1+N-M:N
         i = X[t]
         Mi[i] += oneunit(i)
         Sm[i] += Y[t]
     end
-    sbar = Sm./Mi
-    totalbar = @. (S + Sm)/(Ni + Mi)
+    for i in 1:D
+        if Mi[i] > 0
+            sbar[i] = Sm[i]./Mi[i]
+        else
+            sbar[i] = zero(sbar[1])
+        end
+    end
+    for i in 1:D
+        if (Ni[i] + Mi[i]) > 0
+            totalbar[i] =  (S[i] + Sm[i])/(Ni[i] + Mi[i])
+        else
+            totalbar[i] = zero(sbar[1])
+        end
+    end
     for t in 1:N-M
         i = X[t]
         S2[i] += (Y[t] - ybar[i])^2
@@ -157,23 +178,14 @@ function update_μσ!(μ::AbstractVector{Float64}, σ::AbstractVector{Float64}, 
         i = X[t]
         Sm2[i] += (Y[t] - sbar[i])^2
     end
-    for i in 1:D
-        if Ni[i] == 0
-            S[i] = 0.0
-            S2[i] = 0.0
-            ybar[i] = 0.0
-            totalbar[i] = 0.0
-        end
-        if Mi[i] == 0
-            Sm[i] = 0.0
-            Sm2[i] = 0.0
-            sbar[i] = 0.0
-        end
-    end
     Meff = Mi./(1+κ) # effective number of signals
     Neff = Ni .+ Meff # effective number of total observations
     a = @. α + 0.5*Ni + 0.5*Mi
     b = @. β + 0.5*S2 + (0.5/(1+κ))*Sm2 + 0.5*Neff*ν/(Neff + ν)*(totalbar - ξ)^2
+    for i in 1:D
+        isinf(b[i]) && (b[i] = 99999)
+        (b[i] <= 0.1) && (b[i] = 0.1)
+    end
     for i in 1:D
         try
             σ[i] = rand( Distributions.InverseGamma(a[i], b[i]) )
@@ -385,40 +397,29 @@ function gibbssample!(A::AbstractMatrix{Float64},
     for i in 1:burnin
         gibbssweep!(μ, σ, β, ρ, A, πf, πb, Pf, Pb, X, hp::HyperParams, Y);
     end
-    samples = Vector{Any}(undef,Nrun)
+    
+    ## do a gibbs sweep and save draws
+    μsample = Array{Float64,2}(undef,Nrun, D)
+    σsample = Array{Float64,2}(undef,Nrun, D)
+    πbsample = Array{Float64,3}(undef,Nrun, N, D)
+    Asample = Array{Float64,3}(undef,Nrun, D, D)
     for i in 1:Nrun 
-        gibbssweep!(μ, σ, β, ρ, A, πf, πb, Pf, Pb, X, hp::HyperParams, Y);        
-        samples[i] = (μ=copy(μ), σ=copy(σ), β=copy(β), ρ=copy(ρ), A=copy(A), πf=copy(πf), πb=copy(πb))
+        gibbssweep!(μ, σ, β, ρ, A, πf, πb, Pf, Pb, X, hp::HyperParams, Y);
+        μsample[i, :] = μ
+        σsample[i, :] = σ
+        πbsample[i, :, :] = πb
+        Asample[i, :, :] = A
     end
-    return samples
+    return (μ = μsample, σ = σsample, πb = πbsample, A = Asample)
 end
 
 function calcPostior(samples, hp::HyperParams)
     ## Calculate the Postior
-    D = hp.D
-    N = hp.N 
-    Apost = zeros(D,D)
-    μpost = zeros(D)
-    σpost = zeros(D)
-    ρpost = zeros(D)
-    πfpost = zeros(N,D)
-    πbpost = zeros(N,D)
-    for obs in samples
-        Apost = Apost + obs.A
-        μpost = μpost + obs.μ
-        ρpost = ρpost + obs.ρ
-        πfpost = πfpost + obs.πf
-        πbpost = πbpost + obs.πb
-        σpost = σpost + obs.σ
-    end
-    Nrun = length(samples)
-    Apost = Apost / Nrun
-    μpost = μpost / Nrun
-    ρpost = ρpost / Nrun
-    πfpost = πfpost / Nrun
-    πbpost = πbpost / Nrun
-    σpost = σpost / Nrun
-    return (μ =μpost, σ = σpost, ρ = ρpost, A = Apost, πf = πfpost, πb= πbpost)
+    Apost = mean(sample.A, dim=1)
+    μpost = mean(sample.μ, dim=1)
+    σpost = mean(sample.σ, dim=1)
+    πbpost = mean(sample.πb, dim=1)
+    return (μ = μpost, σ = σpost, A = Apost, πb= πbpost)
 end
 
 function makedate(x)
@@ -511,7 +512,7 @@ function forecast(par, hp::HyperParams, horizon, Yreal)
     Calculate the expected mean horizon-periods ahead and the realized forecast error 
     """
     D = hp.D
-    S0 = par.πb[end,:]'
+    S0 = par.πb'
     S1 = S0 * par.A^(horizon - hp.M)
     forecast = dot(S1,par.μ)
     forecasterror = forecast - Yreal
@@ -520,7 +521,7 @@ end
 
 function saveresults(results, dir)
     """
-    Write postiors to CSV's
+    Write draws to CSV's
     """
     forecasts, μresults, σresults, Aresults, πbresults, obsdates = results
 
@@ -545,6 +546,49 @@ function saveresults(results, dir)
     CSV.write(dir*"filtered_variance.csv", σresultsdf)
     CSV.write(dir*"filtered_trans_probs.csv", Aresultsdf)
     CSV.write(dir*"filtered_state_probs.csv", πbresultsdf)
+end
+
+function saveresults2(forecasts, μresults, σresults, Aresults, πbresults, obsdates, dir)
+    """
+    Write draws to CSV's
+    """
+    forecasts, μresults, σresults, Aresults, πbresults, obsdates = results
+
+    forecastdf = DataFrame(hcat(obsdates, forecasts))
+    forecastnames = Vector{Symbol}(undef, size(forecasts,2)+1)
+    forecastnames[1] = :Date
+    for j in 1:size(forecasts,2) ÷ 2
+        forecastnames[2 * (j - 1) + 2] = Symbol("forecast_$j")
+        forecastnames[2 * (j - 1) + 3] = Symbol("forecast_error_$j")
+    end
+    names!(forecastdf, forecastnames)
+    Dname = [Symbol("state_$j") for j in 0:size(μresults,2)]
+    Dname[1] = :Date
+    D2name = [Symbol("transprob_$j") for j in 0:size(Aresults,2)]
+    D2name[1] = :Date
+    μresultsdf = DataFrame(hcat(obsdates,μresults), Dname)
+    σresultsdf = DataFrame(hcat(obsdates,σresults), Dname)
+    Aresultsdf = DataFrame(hcat(obsdates,Aresults), D2name)
+    πbresultsdf = DataFrame(hcat(obsdates,πbresults), Dname)
+    CSV.write(dir*"filtered_forecasts.csv", forecastdf)
+    CSV.write(dir*"filtered_means.csv", μresultsdf)
+    CSV.write(dir*"filtered_variance.csv", σresultsdf)
+    CSV.write(dir*"filtered_trans_probs.csv", Aresultsdf)
+    CSV.write(dir*"filtered_state_probs.csv", πbresultsdf)
+end
+
+function basicsave(data::Array{Float64,2}, dates, fname, dataheader; signal::Array{Float64,2} = [], precision=5)
+    header = vcat([:date], Symbol.(dataheader))
+    for i in 1:size(signal,2)
+        push!(header, Symbol("signal_$i"))
+    end
+    if size(signal,2) > 0
+        ## Round the data before writing to CSV to save space
+        outdata = hcat(dates,round.(data; digits=precision), signal)
+    else 
+        outdata = hcat(dates, round.(data; digits=precision))
+    end
+    CSV.write(fname, DataFrame(outdata); header = header)
 end
 
 function savesmoothresults(πbresults, dir)
@@ -647,5 +691,126 @@ Returns the forecasts, and postior means of the parameters for each run
     return forecasts, μresults, σresults, Aresults, πbresults, obsdates
 end
 
+
+
+function estimateSignal(rawdata::AbstractVector{Float64}, dates::AbstractVector{Date}; startIndex=1, endIndex=2, horizons=12,
+    D::Int=3, burnin = 1_000, Nrun = 1_000, signalburnin = 1_000, signalNrun = 1_000, signalLen::Int64 = 0, noise::Float64 = 0.0, 
+    noiseSamples::Int64 = 1, σsignal::Vector{Float64} = [], savenosignal::Bool = true, series = "offical")
+"""
+Function to run full HMM estimation for a range of samples
+Inputs -
+Rawdata: Vector of observables 
+dates: Vector of dates for each observable
+dataRange: Index range to select out observations to use in overall analysis
+horizons: Forecasts horizons to calculate
+filterRange: Index range to select the end point for each run. 
+...
+Returns the forecasts, and postior means of the parameters for each run
+"""
+    Random.seed!(1234)
+   
+    ## Make variables
+    Y = rawdata[startIndex:endIndex]
+    (A, ρ, μ, σ, β, πf, πb, Pf, Pb, X) = makeParams(Y, D)
+    hp = HyperParams(Y, D, signalLen, noise)
+    
+    ## Estimate model
+    samples = gibbssample!(A, ρ, μ, σ, β, πf, πb, Pf, Pb, X, hp, Y; burnin = burnin, Nrun = Nrun)
+
+    ## Save results
+    if savenosignal
+        forecasts= Array{Float64,2}(undef, Nrun, 2*length(horizons))
+        ## Calculate forecasts for each draw
+        for j in 1:Nrun, (i,h) in enumerate(horizons)
+            forecasts[j, 2*(i-1)+1:2*(i-1)+2] = collect(forecast((A = samples.A[j,:,:], πb=samples.πb[j,end,:], μ=samples.μ[j,:]), hp, h, rawdata[endIndex+h]))
+        end
+        obsdates = fill(dates[endIndex], Nrun)
+
+        ## save data
+        ## Make headers
+        h1 = [Symbol("state_$i") for i in 1:D]
+        h2 = vec([Symbol("trans_$(j)_$(i)") for i in 1:D, j in 1:D])
+        h3 = Array{Symbol,1}(undef,size(forecasts,2))
+        for j in 1:size(forecasts,2) ÷ 2
+            h3[2 * (j - 1) + 1] = Symbol("forecast_$j")
+            h3[2 * (j - 1) + 2] = Symbol("forecast_error_$j")
+        end
+        basicsave(samples.μ, obsdates, "data/output/$(series)/filtered_means_$(dates[endIndex]).csv", h1; signal = Array{Float64,2}(undef,0,0), precision=5)
+        basicsave(samples.σ, obsdates, "data/output/$(series)/filtered_variances_$(dates[endIndex]).csv", h1; signal = Array{Float64,2}(undef,0,0), precision=5)
+        basicsave(reshape(samples.πb[:,end,:],Nrun,:), obsdates, "data/output/$(series)/filtered_state_probs_$(dates[endIndex]).csv", h1; signal = Array{Float64,2}(undef,0,0), precision=5)
+        basicsave(reshape(samples.A,Nrun,:), obsdates, "data/output/$(series)/filtered_trans_probs_$(dates[endIndex]).csv", h2; signal = Array{Float64,2}(undef,0,0), precision=5)
+        basicsave(forecasts, obsdates, "data/output/$(series)/forecasts_$(dates[endIndex]).csv", h3; signal = Array{Float64,2}(undef,0,0), precision=5)
+
+    end
+
+    ## Do stuff with signals only if asked to
+    (signalLen <= 0 ) && return
+
+    ## Find the signal variance if needed
+    if length(σsignal) !== D
+        (length(σsignal) == 0) && println("Estimating signal variance")
+        (length(σsignal) > 0) && println("Estimating signal variance because number of variances differ from number of states")
+        σsignal = Array{Float64,1}(undef, D)
+        σsignal[:] .= mean(samples.σ)
+    end
+
+    ## Define arrays to save gibbs draws accross MC runs
+    Ndraws = noiseSamples * signalNrun
+    μresults = Array{Float64,2}(undef, Ndraws, hp.D)    
+    σresults = Array{Float64,2}(undef, Ndraws, hp.D)    
+    πbresults = Array{Float64,2}(undef, Ndraws, hp.D)
+    Aresults = Array{Float64,3}(undef, Ndraws, hp.D, hp.D)    
+    obsdates = Array{Date,1}(undef, Ndraws)
+    signalvals = Array{Float64,2}(undef, Ndraws, signalLen)
+    forecasts= Array{Float64,2}(undef, Ndraws, 2*length(horizons))
+
+    ## Sample with noise
+    println("Data end date: $(dates[endIndex]) | End Index: $endIndex")
+    Y = rawdata[startIndex:endIndex+signalLen]
+    ## Make parameters. Copy over states and reusable parameters
+    Xt = copy(X)
+    (At, ρt, μt, σt, βt, πf, πb, Pf, Pb, X) = makeParams(Y, D)
+    for i in 1:min(length(X), length(Xt))
+        X[i] = Xt[i]
+    end
+    hp = HyperParams(Y, D, signalLen, noise)
+    for i in 1:noiseSamples
+        # Generate data
+        Y[endIndex+1:endIndex+signalLen] = rand(Normal(0, σsignal[1]),signalLen) .+ rawdata[endIndex+1:endIndex+signalLen]
+
+        # Estimate model
+        samples = gibbssample!(A, ρ, μ, σ, β, πf, πb, Pf, Pb, X, hp, Y; burnin = signalburnin, Nrun = signalNrun)
+        
+        # Save results to array
+        μresults[signalNrun*(i-1)+1:signalNrun*i,:] = samples.μ
+        σresults[signalNrun*(i-1)+1:signalNrun*i,:] = samples.σ
+        πbresults[signalNrun*(i-1)+1:signalNrun*i,:] = samples.πb[:,end,:]
+        Aresults[signalNrun*(i-1)+1:signalNrun*i,:,:] = samples.A
+        obsdates[signalNrun*(i-1)+1:signalNrun*i] .= dates[endIndex]
+        for j in 1:signalLen
+            signalvals[signalNrun*(i-1)+1:signalNrun*i,j] .= Y[endIndex+j] 
+        end
+    end
+
+    ## Calculate forecasts across all mc draws
+    for j in 1:Ndraws, (i,h) in enumerate(horizons)
+        forecasts[j, 2*(i-1)+1:2*(i-1)+2] = collect(forecast((A = Aresults[j,:,:], πb=πbresults[j,:], μ=μresults[j,:]), hp, h-signalLen, rawdata[endIndex+h]))
+    end
+
+    ## Save draws to file
+    h1 = [Symbol("state_$i") for i in 1:D]
+    h2 = vec([Symbol("trans_$(j)_$(i)") for i in 1:D, j in 1:D])
+    h3 = Array{Symbol,1}(undef,size(forecasts,2))
+    for j in 1:size(forecasts,2) ÷ 2
+        h3[2 * (j - 1) + 1] = Symbol("forecast_$j")
+        h3[2 * (j - 1) + 2] = Symbol("forecast_error_$j")
+    end
+    basicsave(μresults, obsdates, "data/output/signals/$(series)/noise_$(noise)/filtered_means_$(dates[endIndex]).csv", h1; signal = signalvals)
+    basicsave(σresults, obsdates, "data/output/signals/$(series)/noise_$(noise)/filtered_variances_$(dates[endIndex]).csv", h1; signal = signalvals)
+    basicsave(πbresults, obsdates, "data/output/signals/$(series)/noise_$(noise)/filtered_state_probs_$(dates[endIndex]).csv", h1; signal = signalvals)
+    basicsave(reshape(Aresults,Ndraws,:), obsdates, "data/output/signals/$(series)/noise_$(noise)/filtered_trans_probs_$(dates[endIndex]).csv", h2; signal = signalvals)
+    basicsave(forecasts, obsdates, "data/output/signals/$(series)/noise_$(noise)/forecasts_$(dates[endIndex]).csv", h3; signal = signalvals)
+
+end
 
 end # module
