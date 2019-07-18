@@ -1,5 +1,5 @@
 module Hmc
-export makedate, sampleAndForecastAll, smoothStates, saveresults, savesmoothresults, generateData, sampleSignals, estimateSignal
+export makedate, sampleAndForecastAll, smoothStates, saveresults, savesmoothresults, generateData, sampleSignals, estimateSignal, aggregate
 
 using Distributions
 using Random
@@ -11,6 +11,7 @@ using Dates
 using CSV
 using Distributed
 using SharedArrays
+using Glob
 
 struct HyperParams{T}
     """
@@ -810,6 +811,35 @@ Returns the forecasts, and postior means of the parameters for each run
     basicsave(πbresults, obsdates, "data/output/signals/$(series)/noise_$(noise)/filtered_state_probs_$(dates[endIndex]).csv", h1; signal = signalvals)
     basicsave(reshape(Aresults,Ndraws,:), obsdates, "data/output/signals/$(series)/noise_$(noise)/filtered_trans_probs_$(dates[endIndex]).csv", h2; signal = signalvals)
     basicsave(forecasts, obsdates, "data/output/signals/$(series)/noise_$(noise)/forecasts_$(dates[endIndex]).csv", h3; signal = signalvals)
+
+end
+
+function aggregate(datadir)
+    if !ispath(datadir)
+        @error "$(datadir) is not a valid directory"
+        exit(2)
+    end
+    println("Using data in $(datadir)")
+
+    ## Grab header of first file and test if it has signals
+    files = glob("filtered_means*", datadir)
+    headers = Vector(CSV.read(files[1]; header = false, limit = 1)[1,:])
+    hassignal = any(occursin.("signal", headers))
+    !hassignal ? groups = [:date] : groups = [:date, :signal_1]
+
+    for var in ["filtered_means", "filtered_state_probs", "filtered_variances", "forecasts"]
+        files = glob("$(var)*", datadir)
+        files = files[.!occursin.("summary", files)]
+        println("Reading in $(files[1])")
+        outdf = DataFrames.aggregate(CSV.read(files[1]), groups, mean)
+        for f in files[2:end]
+            println("Reading in $f")
+            df = CSV.read(f)
+            df2 = DataFrames.aggregate(df, groups, mean)
+            append!(outdf,df2)
+        end
+        CSV.write(joinpath(datadir,"$(var)_summary.csv"), outdf)
+    end
 
 end
 

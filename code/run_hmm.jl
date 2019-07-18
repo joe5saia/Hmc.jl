@@ -10,8 +10,8 @@ Output: Writes several csvs
 =#
 ###############################################################################
 ## CHANGE THIS TO DIRECTORY LOCATION
-root_dir = "/moto/sscc/projects/biasedexpectations/"
-#root_dir = "/research/hmc/"
+#root_dir = "/moto/sscc/projects/biasedexpectations/"
+root_dir = "/research/hmc/"
 cd(root_dir)
 
 ## Supply the data series as a command line argument 
@@ -65,13 +65,13 @@ elseif dateindex < startindex
 end
 
 ## Run parameters
-Nrun = 10_000
+Nrun = 5
 burnin = 10_000
-signalNrun = 10_000
+signalNrun = 5
 signalburnin = 1_000
 signalLen = 1
 D = 3
-noiseSamples = 300
+noiseSamples = 3
 
 ## Estimate model for each horizion we want with no signals
 println("Estimating base model without Signals. Date range is $(rawdata[startindex, :date]) to $(rawdata[dateindex, :date])")
