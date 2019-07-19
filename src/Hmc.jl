@@ -814,10 +814,10 @@ Returns the forecasts, and postior means of the parameters for each run
 
 end
 
-function aggregate(datadir)
+function runaggregate(datadir)
     if !ispath(datadir)
         @error "$(datadir) is not a valid directory"
-        exit(2)
+        return
     end
     println("Using data in $(datadir)")
 
@@ -840,7 +840,21 @@ function aggregate(datadir)
         end
         CSV.write(joinpath(datadir,"$(var)_summary.csv"), outdf)
     end
-
 end
+
+function calcdispersion(datadir)
+    if !ispath(datadir)
+        @error "$(datadir) is not a valid directory"
+        return
+    end
+    println("Using data in $(datadir)")
+    for var in ["filtered_means", "filtered_state_probs", "filtered_variances", "forecasts"]
+        df = CSV.read(joinpath(datadir, var * "_summary.csv"))
+        rename!(x -> Symbol(replace(String(x), "_mean" => "" )), df)
+        df2 = DataFrames.aggregate(df, [:date], [mean, std])
+        CSV.write(joinpath(datadir, var * "_dispersion.csv"), df2)
+    end
+end
+
 
 end # module

@@ -1,15 +1,15 @@
 ##############################################################################
 #= 
-Program: aggregate.jl
+Program: dispersion.jl
 Author: Joe Saia
 Date: July 2019
-Info: Reads in output csvs from run_hmm.jl and calculates postior statistics
-like the mean 
+Info: Calculates the mean, std, and IQR of the postior forecasts from the 
+Monte Carlo simulations with signals
 Output: Writes several csvs with postior statistics
 =#
 ##############################################################################
-root_dir = "/moto/sscc/projects/biasedexpectations/"
-#root_dir = "/research/hmc/"
+#root_dir = "/moto/sscc/projects/biasedexpectations/"
+root_dir = "/research/hmc/"
 cd(root_dir)
 
 ## Load packages 
@@ -19,12 +19,7 @@ push!(LOAD_PATH, "$(root_dir)src")
 using Hmc
 
 for s in ["official", "alter"]
-    runaggregate(joinpath(root_dir, "data/output/$(s)"))
     for n in ["1.0", "3.0", "7.0"]
-        runaggregate(joinpath(root_dir, "data/output/signals/$(s)/noise_$(n)"))
+        Hmc.calcdispersion(joinpath(root_dir, "data/output/signals/$(s)/noise_$(n)"))
     end
 end
-
-
-
-
