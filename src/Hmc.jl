@@ -732,9 +732,9 @@ Returns the forecasts, and postior means of the parameters for each run
         h1 = [Symbol("state_$i") for i in 1:D]
         h2 = vec([Symbol("trans_$(j)_$(i)") for i in 1:D, j in 1:D])
         h3 = Array{Symbol,1}(undef,size(forecasts,2))
-        for j in 1:size(forecasts,2) ÷ 2
-            h3[2 * (j - 1) + 1] = Symbol("forecast_$j")
-            h3[2 * (j - 1) + 2] = Symbol("forecast_error_$j")
+        for (j,h) in enumerate(horizons)
+            h3[2 * (j - 1) + 1] = Symbol("forecast_$h")
+            h3[2 * (j - 1) + 2] = Symbol("forecast_error_$h")
         end
         basicsave(samples.μ, obsdates, "data/output/$(series)/filtered_means_$(dates[endIndex]).csv", h1; signal = Array{Float64,2}(undef,0,0), precision=5)
         basicsave(samples.σ, obsdates, "data/output/$(series)/filtered_variances_$(dates[endIndex]).csv", h1; signal = Array{Float64,2}(undef,0,0), precision=5)
@@ -802,9 +802,9 @@ Returns the forecasts, and postior means of the parameters for each run
     h1 = [Symbol("state_$i") for i in 1:D]
     h2 = vec([Symbol("trans_$(j)_$(i)") for i in 1:D, j in 1:D])
     h3 = Array{Symbol,1}(undef,size(forecasts,2))
-    for j in 1:size(forecasts,2) ÷ 2
-        h3[2 * (j - 1) + 1] = Symbol("forecast_$j")
-        h3[2 * (j - 1) + 2] = Symbol("forecast_error_$j")
+    for (j,h) in enumerate(horizons)
+        h3[2 * (j - 1) + 1] = Symbol("forecast_$h")
+        h3[2 * (j - 1) + 2] = Symbol("forecast_error_$h")
     end
     basicsave(μresults, obsdates, "data/output/signals/$(series)/noise_$(noise)/filtered_means_$(dates[endIndex]).csv", h1; signal = signalvals)
     basicsave(σresults, obsdates, "data/output/signals/$(series)/noise_$(noise)/filtered_variances_$(dates[endIndex]).csv", h1; signal = signalvals)
