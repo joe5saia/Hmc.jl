@@ -833,7 +833,7 @@ function aggregate(datadir)
         println("Reading in $(files[1])")
         outdf = DataFrames.aggregate(CSV.read(files[1]), groups, mean)
         for f in files[2:end]
-            println("Reading in $f")
+#            println("Reading in $f")
             df = CSV.read(f)
             df2 = DataFrames.aggregate(df, groups, mean)
             append!(outdf,df2)
