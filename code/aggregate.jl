@@ -18,10 +18,11 @@ Pkg.activate(root_dir)
 push!(LOAD_PATH, "$(root_dir)src")
 using Hmc
 
-for s in ["official", "alter"]
-    runaggregate(joinpath(root_dir, "data/output/$(s)"))
+#for s in ["official", "alter"]
+for s in ["alter"]
+    Hmc.runaggregate(joinpath(root_dir, "data/output/$(s)"))
     for n in ["1.0", "3.0", "7.0"]
-        runaggregate(joinpath(root_dir, "data/output/signals/$(s)/noise_$(n)"))
+        Hmc.runaggregate(joinpath(root_dir, "data/output/signals/$(s)/noise_$(n)"))
     end
 end
 
