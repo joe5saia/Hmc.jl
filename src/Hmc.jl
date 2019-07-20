@@ -41,10 +41,10 @@ function HyperParams(Y::AbstractVector{Float64}, D::Int64, M::Int64=0, κ::Float
     R = maximum(Y) - minimum(Y)
     #ξ = SVector{D}(range(median(Y) - 0.25*R, median(Y) + 0.25*R, length=D)) # small α means this doesn't matter much
     ξ = SVector{D}([mean(Y) for i in 1:D]) # small α means this doesn't matter much
-    α = SVector{D}([1.0 for i in 1:D])
-    g = SVector{D}([0.2 for i in 1:D])
-    h = SVector{D}([10/R^2 for i in 1:D])
-    ν = SVector{D}([0.1 for i in 1:D])
+    α = SVector{D}([2.0 for i in 1:D])
+    g = SVector{D}([2.0 for i in 1:D])
+    h = SVector{D}([R^2 for i in 1:D])
+    ν = SVector{D}([2.0 for i in 1:D])
     return HyperParams{D}(D, N, M, κ, ξ, α, g, h, ν)
 end
 
@@ -200,7 +200,7 @@ function update_μσ!(μ::AbstractVector{Float64}, σ::AbstractVector{Float64}, 
             println(totalbar)
         end
     end
-        m = @. (S + sbar * Meff + ν*ξ)/(Neff + ν)
+        m = @. (S + Sm + ν*ξ)/(Neff + ν)
         s =  @. sqrt(σ/(Neff + ν))
     for i in 1:D
         μ[i] =  rand( Distributions.Normal(m[i], s[i]) )
