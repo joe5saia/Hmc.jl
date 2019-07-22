@@ -9,10 +9,16 @@ Input: Takes a Stata file with the inflation series as an Input
 Output: Writes several csvs
 =#
 ###############################################################################
-## CHANGE THIS TO DIRECTORY LOCATION
-#root_dir = "/moto/sscc/projects/biasedexpectations/"
-root_dir = "/research/hmc/"
+if ispath("/moto/sscc/projects/biasedexpectations")
+    root_dir = "/moto/sscc/projects/biasedexpectations"
+elseif ispath("/research/hmc")
+    root_dir = "/research/hmc"
+else 
+    @error "No valid directory for root directory found"
+    exit(1)
+end
 cd(root_dir)
+
 
 ## Supply the data series as a command line argument 
 if length(ARGS) !== 2
@@ -40,7 +46,7 @@ println("End date index is $(dateindex)")
 ## Load packages 
 using Pkg
 Pkg.activate(root_dir)
-push!(LOAD_PATH, "$(root_dir)src")
+push!(LOAD_PATH, joinpath(root_dir, "src"))
 using Hmc
 
 using StatFiles
