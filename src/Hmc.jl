@@ -119,6 +119,9 @@ function generateData(A, μ, σ, T::Int, D::Int)
 end
 
 function update_μσ!(μ::AbstractVector{Float64}, σ::AbstractVector{Float64}, β::AbstractVector{Float64}, X::AbstractVector{Int64}, Y::AbstractVector{Float64}, hp::HyperParams)
+
+
+
     """
     Updates mean and variance in place 
     Draw σ^2 from inverseΓ(a,b) then draw  μ|σ from N(m,s)
@@ -827,13 +830,18 @@ function runaggregate(datadir)
     hassignal = any(occursin.("signal", headers))
     !hassignal ? groups = [:date] : groups = [:date, :signal_1]
 
-    for var in ["filtered_means", "filtered_state_probs", "filtered_variances", "forecasts"]
+    for var in ["filtered_means", "filtered_state_probs", "filtered_variances", "filtered_trans_probs", "forecasts"]
         files = glob("$(var)*", datadir)
         files = files[.!occursin.("summary", files)]
+<<<<<<< HEAD
 #        println("Reading in $(files[1])")
+=======
+        files = files[.!occursin.("dispersion", files)]
+        println("Reading in $(files[1])")
+>>>>>>> f0a930ad1de883ad3cd6740fecca33ffec6430a0
         outdf = DataFrames.aggregate(CSV.read(files[1]), groups, mean)
         for f in files[2:end]
-#            println("Reading in $f")
+            println("Reading in $f")
             df = CSV.read(f)
             df2 = DataFrames.aggregate(df, groups, mean)
             append!(outdf,df2)
@@ -848,7 +856,7 @@ function calcdispersion(datadir)
         return
     end
     println("Using data in $(datadir)")
-    for var in ["filtered_means", "filtered_state_probs", "filtered_variances", "forecasts"]
+    for var in ["filtered_means", "filtered_state_probs", "filtered_variances", "filtered_trans_probs", "forecasts"]
         df = CSV.read(joinpath(datadir, var * "_summary.csv"))
         rename!(x -> Symbol(replace(String(x), "_mean" => "" )), df)
         df2 = DataFrames.aggregate(df, [:date], [mean, std])
