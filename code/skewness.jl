@@ -27,6 +27,7 @@ dfstates = CSV.read(joinpath(root_dir, "data/output/official/filtered_state_prob
 
 ## Set the date to calculate skewness for
 ldate = maximum(dfmeans[!,:date])
+println("using data from $ldate")
 
 ## Make distribution that describes the mixture distribution inflation follows
 f = MixtureModel(Normal[
@@ -38,3 +39,4 @@ f = MixtureModel(Normal[
 ## draw from mixture model and then caluclate sample skewness
 data = rand(f,10_000_000)
 skew = sum(((data .- mean(f))./std(f)).^3)/length(data)
+println("Skewness is $skew")
