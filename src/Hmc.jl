@@ -833,12 +833,9 @@ function runaggregate(datadir)
     for var in ["filtered_means", "filtered_state_probs", "filtered_variances", "filtered_trans_probs", "forecasts"]
         files = glob("$(var)*", datadir)
         files = files[.!occursin.("summary", files)]
-<<<<<<< HEAD
-#        println("Reading in $(files[1])")
-=======
+
         files = files[.!occursin.("dispersion", files)]
         println("Reading in $(files[1])")
->>>>>>> f0a930ad1de883ad3cd6740fecca33ffec6430a0
         outdf = DataFrames.aggregate(CSV.read(files[1]), groups, mean)
         for f in files[2:end]
             println("Reading in $f")
