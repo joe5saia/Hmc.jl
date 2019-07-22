@@ -22,7 +22,6 @@ using CSV, DataFrames, Statistics, Distributions
 ## Read in data
 dfmeans = CSV.read(joinpath(root_dir, "data/output/official/filtered_means_summary.csv"))
 dfvars = CSV.read(joinpath(root_dir, "data/output/official/filtered_variances_summary.csv"))
-dftrans = CSV.read(joinpath(root_dir, "data/output/official/filtered_trans_probs_summary.csv"))
 dfstates = CSV.read(joinpath(root_dir, "data/output/official/filtered_state_probs_summary.csv"))
 
 ## Set the date to calculate skewness for
