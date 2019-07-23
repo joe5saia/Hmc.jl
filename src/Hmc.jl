@@ -780,7 +780,7 @@ Returns the forecasts, and postior means of the parameters for each run
     hp = HyperParams(Y, D, signalLen, noise)
     for i in 1:noiseSamples
         # Generate data
-        Y[endIndex+1:endIndex+signalLen] = rand(Normal(0, σsignal[1]),signalLen) .+ rawdata[endIndex+1:endIndex+signalLen]
+        Y[endIndex+1:endIndex+signalLen] = rand(Normal(0, σsignal[1]*noise),signalLen) .+ rawdata[endIndex+1:endIndex+signalLen]
 
         # Estimate model
         samples = gibbssample!(A, ρ, μ, σ, β, πf, πb, Pf, Pb, X, hp, Y; burnin = signalburnin, Nrun = signalNrun)
