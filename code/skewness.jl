@@ -29,11 +29,13 @@ ldate = maximum(dfmeans[!,:date])
 println("using data from $ldate")
 
 ## Make distribution that describes the mixture distribution inflation follows
+p = collect(dfstates[dfstates[!,:date] .== ldate, [:state_1_mean,:state_2_mean, :state_3_mean] ][1,:])
+p ./= sum(p)
 f = MixtureModel(Normal[
     Normal(dfmeans[dfmeans[!,:date] .== ldate, :state_1_mean][1], sqrt(dfvars[dfvars[!,:date] .== ldate, :state_1_mean][1])),
     Normal(dfmeans[dfmeans[!,:date] .== ldate, :state_2_mean][1], sqrt(dfvars[dfvars[!,:date] .== ldate, :state_2_mean][1])),
     Normal(dfmeans[dfmeans[!,:date] .== ldate, :state_3_mean][1], sqrt(dfvars[dfvars[!,:date] .== ldate, :state_3_mean][1])) ],
-    collect(dfstates[dfstates[!,:date] .== ldate, [:state_1_mean,:state_2_mean, :state_3_mean] ][1,:]) )
+    p)
 
 ## draw from mixture model and then caluclate sample skewness
 data = rand(f,10_000_000)
