@@ -828,14 +828,12 @@ function runaggregate(datadir)
     !hassignal ? groups = [:date] : groups = [:date, :signal_1]
 
     for var in ["filtered_means", "filtered_state_probs", "filtered_variances", "filtered_trans_probs", "forecasts"]
+        println("Summarizing " * var)
         files = glob("$(var)*", datadir)
         files = files[.!occursin.("summary", files)]
-
         files = files[.!occursin.("dispersion", files)]
-        println("Reading in $(files[1])")
         outdf = DataFrames.aggregate(CSV.read(files[1]), groups, mean)
         for f in files[2:end]
-            println("Reading in $f")
             df = CSV.read(f)
             df2 = DataFrames.aggregate(df, groups, mean)
             append!(outdf,df2)

@@ -71,13 +71,13 @@ elseif dateindex < startindex
 end
 
 ## Run parameters
-Nrun = 5
-burnin = 10_000
-signalNrun = 5
-signalburnin = 1_000
+Nrun = 10_000
+burnin = 20_000
+signalNrun = 3_000
+signalburnin = 10_000
 signalLen = 1
 D = 3
-noiseSamples = 3
+noiseSamples = 300
 
 ## Estimate model for each horizion we want with no signals
 println("Estimating base model without Signals. Date range is $(rawdata[startindex, :date]) to $(rawdata[dateindex, :date])")

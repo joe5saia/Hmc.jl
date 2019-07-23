@@ -25,8 +25,7 @@ Pkg.activate(root_dir)
 push!(LOAD_PATH, joinpath(root_dir, "src"))
 using Hmc
 
-#for s in ["official", "alter"]
-for s in ["alter"]
+for s in ["official", "alter"]
     for n in ["1.0", "3.0", "7.0"]
         Hmc.calcdispersion(joinpath(root_dir, "data/output/signals/$(s)/noise_$(n)"))
     end
