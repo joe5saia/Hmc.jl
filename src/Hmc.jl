@@ -699,7 +699,7 @@ end
 
 function estimateSignal(rawdata::AbstractVector{Float64}, dates::AbstractVector{Date}; startIndex=1, endIndex=2, horizons=12,
     D::Int=3, burnin = 1_000, Nrun = 1_000, signalburnin = 1_000, signalNrun = 1_000, signalLen::Int64 = 0, noise::Float64 = 0.0, 
-    noiseSamples::Int64 = 1, σsignal::Vector{Float64} = [], savenosignal::Bool = true, series = "offical")
+    noiseSamples::Int64 = 1, σsignal::Float64 = 0, savenosignal::Bool = true, series = "offical")
 """
 Function to run full HMM estimation for a range of samples
 Inputs -
@@ -751,11 +751,8 @@ Returns the forecasts, and postior means of the parameters for each run
     (signalLen <= 0 ) && return
 
     ## Find the signal variance if needed
-    if length(σsignal) !== D
-        (length(σsignal) == 0) && println("Estimating signal variance")
-        (length(σsignal) > 0) && println("Estimating signal variance because number of variances differ from number of states")
-        σsignal = Array{Float64,1}(undef, D)
-        σsignal[:] .= mean(samples.σ)
+    if σsignal == 0
+        σsignal= mean(samples.σ)*noise
     end
 
     ## Define arrays to save gibbs draws accross MC runs
@@ -780,7 +777,7 @@ Returns the forecasts, and postior means of the parameters for each run
     hp = HyperParams(Y, D, signalLen, noise)
     for i in 1:noiseSamples
         # Generate data
-        Y[endIndex+1:endIndex+signalLen] = rand(Normal(0, σsignal[1]*noise),signalLen) .+ rawdata[endIndex+1:endIndex+signalLen]
+        Y[endIndex+1:endIndex+signalLen] = rand(Normal(0, σsignal),signalLen) .+ rawdata[endIndex+1:endIndex+signalLen]
 
         # Estimate model
         samples = gibbssample!(A, ρ, μ, σ, β, πf, πb, Pf, Pb, X, hp, Y; burnin = signalburnin, Nrun = signalNrun)
