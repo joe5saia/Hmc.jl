@@ -56,7 +56,7 @@ using Dates
 
 ## Read in data
 rawdata = DataFrame(load("data/raw/sgs_data.dta"))
-rawdata[:date] = makedate.(rawdata[:date])
+rawdata[!,:date] = makedate.(rawdata[!.:date])
 
 ## Set data range to use in samples
 startindex = findfirst(isequal(Date(1970, 1)), rawdata[:date])
@@ -84,7 +84,7 @@ println("Estimating base model without Signals. Date range is $(rawdata[startind
 !ispath("data/output/$(series)/") && mkpath("data/output/$(series)/")
 estimateSignal(Vector{Float64}(rawdata[dataseries]), Vector{Date}(rawdata[:date]); startIndex=startindex, endIndex=dateindex, horizons=12,
     D = D, burnin = burnin, Nrun = Nrun, signalburnin = signalburnin, signalNrun = signalNrun, signalLen = 0, noise = 0.0, 
-    noiseSamples = noiseSamples, σsignal = Float64[], savenosignal= true, series = series)
+    noiseSamples = noiseSamples, σsignal = 0, savenosignal= true, series = series)
 
 
 ## Estimate model for each horizon we want with signals for different noise levels
@@ -93,5 +93,5 @@ for noiselevel in [1.0 3.0 7.0]
     !ispath("data/output/signals/$(series)/noise_$(noiselevel)") && mkpath("data/output/signals/$(series)/noise_$(noiselevel)")
     estimateSignal(Vector{Float64}(rawdata[dataseries]), Vector{Date}(rawdata[:date]); startIndex=startindex, endIndex=dateindex, horizons=12,
         D = D, burnin = burnin, Nrun = Nrun, signalburnin = signalburnin, signalNrun = signalNrun, signalLen = 1, noise = noiselevel, 
-        noiseSamples = noiseSamples, σsignal= Float64[], savenosignal = false, series = series)
+        noiseSamples = noiseSamples, σsignal= 0, savenosignal = false, series = series)
 end
