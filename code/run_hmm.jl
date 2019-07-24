@@ -125,7 +125,17 @@ estimateSignal(opt)
 ## Estimate model for each horizon we want with signals for different noise levels
 opt.signalLen=1
 opt.savenosignal=false
-for noiselevel in [1.0 3.0 7.0]
+for noiselevel in [0.1 1.0 3.0]
+    println("Running noise = $(noiselevel) sample")
+    opt.noise=noiselevel
+    p = "data/output/signals_$(opt.series)_noise_$(opt.noise)_len_$(opt.signalLen)"
+    !ispath(p) && mkpath(p)
+    estimateSignal(opt)
+end
+
+opt.signalLen=12
+opt.savenosignal=false
+for noiselevel in [0.1 1.0 3.0]
     println("Running noise = $(noiselevel) sample")
     opt.noise=noiselevel
     p = "data/output/signals_$(opt.series)_noise_$(opt.noise)_len_$(opt.signalLen)"
