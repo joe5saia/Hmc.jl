@@ -32,6 +32,7 @@ for s in ["official", "alter"]
             Hmc.runaggregate(joinpath(root_dir, "data/output/signals_$(s)_noise_$(n)_len_$(m)"))
         else
             println("$(joinpath(root_dir, "data/output/signals_$(s)_noise_$(n)_len_$(m)")) is not a valid path" )
+        end
     end
 end
 

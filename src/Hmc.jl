@@ -547,7 +547,7 @@ function forecastsignal(par, hp::HyperParams, horizon, Yreal, signal, noise)
     S1 = S0 * par.A^(horizon - hp.M)
     f = Array{Float64,1}(undef,hp.D)
     for i in 1:hp.D 
-        a = signalnoise/(1+signalnoise)
+        a = noise/(1+noise)
         f[i] = a * signal + (1-a) * par.μ[i]
     end
     forecast = dot(S1, f)
@@ -753,7 +753,7 @@ function estimatesignals!(opt)
      ## Calculate forecasts across all mc draws
      for j in 1:Ndraws, (i,h) in enumerate(opt.horizons)
         if opt.signalLen == h
-            forecasts[j, 2*(i-1)+1:2*(i-1)+2] = collect(forecastsignal((A = Asample[j,:,:], πb=πbsample[j,:], μ=μsample[j,:]), hp, h-opt.signalLen, yobs(opt, opt.endIndex + h), signalvals[j], opt.signalnoise))
+            forecasts[j, 2*(i-1)+1:2*(i-1)+2] = collect(forecastsignal((A = Asample[j,:,:], πb=πbsample[j,:], μ=μsample[j,:]), hp, h-opt.signalLen, yobs(opt, opt.endIndex + h), signalvals[j], opt.noise))
         else
             forecasts[j, 2*(i-1)+1:2*(i-1)+2] = collect(forecast((A = Asample[j,:,:], πb=πbsample[j,:], μ=μsample[j,:]), hp, h-opt.signalLen, yobs(opt, opt.endIndex + h) ))
         end
