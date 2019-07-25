@@ -48,7 +48,7 @@ Pkg.activate(root_dir)
 push!(LOAD_PATH, joinpath(root_dir, "src"))
 using Hmc
 
-using StatFiles, DataFrames, Dates
+using StatFiles, DataFrames, Dates, Random
 
 
 ## Read in data
@@ -120,7 +120,11 @@ println("Estimating base model without Signals. Date range is $(Hmc.startdate(op
 !ispath("data/output/$(opt.series)/") && mkpath("data/output/$(opt.series)/")
 opt.signalLen=0
 opt.savenosignal=true
-estimateSignal(opt)
+Random.seed!(opt.seed)
+samples = Hmc.estimatemodel(opt)
+Hmc.saveresults(samples, opt; hassignals = false)
+
+
 
 ## Estimate model for each horizon we want with signals for different noise levels
 opt.signalLen=1
@@ -130,7 +134,9 @@ for noiselevel in [0.1 1.0 3.0]
     opt.noise=noiselevel
     p = "data/output/signals_$(opt.series)_noise_$(opt.noise)_len_$(opt.signalLen)"
     !ispath(p) && mkpath(p)
-    estimateSignal(opt)
+    Random.seed!(opt.seed)
+    samples = Hmc.estimatesignals!(opt)
+    Hmc.saveresults(samples, opt; hassignals = true)
 end
 
 opt.signalLen=12
@@ -140,5 +146,7 @@ for noiselevel in [0.1 1.0 3.0]
     opt.noise=noiselevel
     p = "data/output/signals_$(opt.series)_noise_$(opt.noise)_len_$(opt.signalLen)"
     !ispath(p) && mkpath(p)
-    estimateSignal(opt)
+    Random.seed!(opt.seed)
+    samples = Hmc.estimatesignals!(opt)
+    Hmc.saveresults(samples, opt; hassignals = true)
 end

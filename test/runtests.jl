@@ -1,11 +1,24 @@
-using Dates
-using Test
-using Statistics
-using Distributed
+using Dates, Test, Statistics, Random
+
+if ispath("/moto/sscc/projects/biasedexpectations")
+    root_dir = "/moto/sscc/projects/biasedexpectations"
+elseif ispath("/research/hmc")
+    root_dir = "/research/hmc"
+else 
+    @error "No valid directory for root directory found"
+    exit(1)
+end
+cd(root_dir)
+
+
+## Load packages 
+using Pkg
+Pkg.activate(root_dir)
+push!(LOAD_PATH, joinpath(root_dir, "src"))
 using Hmc
 
 #Number of observations
-T = 5000
+T = 500
 # State Transition Matrix
 A99 = [0.25 0.75;
        0.60 0.40]
@@ -16,21 +29,39 @@ A99 = [0.25 0.75;
 Y99, X99 = generateData(A99, μ99, σ99, T, 2)
 dates = range(Date(1970, 1, 1), step = Dates.Month(1), length = T)
 
-results = sampleSignals(Y99, dates, 1, 8:12, T-20:T-20; D = 2, burnin = 10_000, Nrun = 10_000, 
-                        initialburn = 10_000, initialNrun = 1, signalLen = 0, noise = 0.5, noiseSamples= 10)
+opt = Hmc.estopt(
+       Vector{Float64}(Y99), 
+       Vector{Date}(dates),
+       startIndex=1,
+       endIndex=T-24,
+       horizons=[12],
+       D = 2,
+       burnin = 20_000,
+       Nrun = 10_000,
+       signalburnin = 20_000,
+       signalNrun = 3_333,
+       signalLen = 1,
+       noise = 10.0,
+       noiseSamples = 3,
+       σsignal = 0.0,
+       savenosignal= false,
+       series = "test",
+       seed = 1234,
+)
 
-forecasts, μresults, σresults, Aresults, πbresults, obsdates = results
+Random.seed!(opt.seed)
+samples = Hmc.estimatemodel(opt)
 
-@test all(isapprox.(vec(mean(μresults, dims=1)), μ99, atol=0.1))
-@test all(isapprox.(vec(mean(σresults, dims=1)), σ99, atol=0.1))
+println("True mean: $(μ99)\nEstimated mean $(vec(mean(samples.μ, dims=1)))")
+println("True variances: $(σ99)\nEstimated variances $(vec(mean(samples.σ, dims=1)))")
 
-println("True mean: $(μ99)\nEstimated mean $(vec(mean(μresults, dims=1)))")
+@test all(isapprox.(vec(mean(samples.μ, dims=1)), μ99, atol=0.3))
+@test all(isapprox.(vec(mean(samples.σ, dims=1)), σ99, atol=0.5))
 
+Random.seed!(opt.seed)
+samples = Hmc.estimatesignals!(opt)
+println("True mean: $(μ99)\nEstimated mean $(vec(mean(samples.μ, dims=1)))")
+println("True variances: $(σ99)\nEstimated variances $(vec(mean(samples.σ, dims=1)))")
 
-results = sampleSignals(Y99, dates, 1, 8:12, T-20:T-20; D = 2, burnin = 1_000, Nrun = 1000, 
-                        initialburn = 10_000, initialNrun = 1, signalLen = 1, noise = 0.5, noiseSamples= 10)
-
-forecasts, μresults, σresults, Aresults, πbresults, obsdates = results
-@test all(isapprox.(vec(mean(μresults, dims=1)), μ99, atol=0.1))
-@test all(isapprox.(vec(mean(σresults, dims=1)), σ99, atol=0.1))
-                        
+@test all(isapprox.(vec(mean(samples.μ, dims=1)), μ99, atol=0.3))
+@test all(isapprox.(vec(mean(samples.σ, dims=1)), σ99, atol=0.5))
