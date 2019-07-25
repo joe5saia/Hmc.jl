@@ -541,63 +541,20 @@ function forecast(par, hp::HyperParams, horizon, Yreal)
     return forecast, forecasterror
 end
 
-# function saveresults(results, dir)
-#     """
-#     Write draws to CSV's
-#     """
-#     forecasts, μresults, σresults, Aresults, πbresults, obsdates = results
+function forecastsignal(par, hp:HyperParams, horizon, Yreal, signal, signalnoise)
+    D = hp.D
+    S0 = par.πb'
+    S1 = S0 * par.A^(horizon - hp.M)
+    f = Array{Float64,1}(undef,hp.D)
+    for i in 1:hp.D 
+        a = signalnoise/(1+signalnoise)
+        f[i] = a * signal + (1-a) * par.μ[i]
+    end
+    forecast = dot(S1, f)
+    forecasterror = forecast - Yreal
+    return forecast, forecasterror
+end
 
-#     forecastdf = DataFrame(hcat(obsdates, forecasts))
-#     forecastnames = Vector{Symbol}(undef, size(forecasts,2)+1)
-#     forecastnames[1] = :Date
-#     for j in 1:size(forecasts,2) ÷ 2
-#         forecastnames[2 * (j - 1) + 2] = Symbol("forecast_$j")
-#         forecastnames[2 * (j - 1) + 3] = Symbol("forecast_error_$j")
-#     end
-#     names!(forecastdf, forecastnames)
-#     Dname = [Symbol("state_$j") for j in 0:size(μresults,2)]
-#     Dname[1] = :Date
-#     D2name = [Symbol("transprob_$j") for j in 0:size(Aresults,2)]
-#     D2name[1] = :Date
-#     μresultsdf = DataFrame(hcat(obsdates,μresults), Dname)
-#     σresultsdf = DataFrame(hcat(obsdates,σresults), Dname)
-#     Aresultsdf = DataFrame(hcat(obsdates,Aresults), D2name)
-#     πbresultsdf = DataFrame(hcat(obsdates,πbresults), Dname)
-#     CSV.write(dir*"filtered_forecasts.csv", forecastdf)
-#     CSV.write(dir*"filtered_means.csv", μresultsdf)
-#     CSV.write(dir*"filtered_variance.csv", σresultsdf)
-#     CSV.write(dir*"filtered_trans_probs.csv", Aresultsdf)
-#     CSV.write(dir*"filtered_state_probs.csv", πbresultsdf)
-# end
-
-# function saveresults2(forecasts, μresults, σresults, Aresults, πbresults, obsdates, dir)
-#     """
-#     Write draws to CSV's
-#     """
-#     forecasts, μresults, σresults, Aresults, πbresults, obsdates = results
-
-#     forecastdf = DataFrame(hcat(obsdates, forecasts))
-#     forecastnames = Vector{Symbol}(undef, size(forecasts,2)+1)
-#     forecastnames[1] = :Date
-#     for j in 1:size(forecasts,2) ÷ 2
-#         forecastnames[2 * (j - 1) + 2] = Symbol("forecast_$j")
-#         forecastnames[2 * (j - 1) + 3] = Symbol("forecast_error_$j")
-#     end
-#     names!(forecastdf, forecastnames)
-#     Dname = [Symbol("state_$j") for j in 0:size(μresults,2)]
-#     Dname[1] = :Date
-#     D2name = [Symbol("transprob_$j") for j in 0:size(Aresults,2)]
-#     D2name[1] = :Date
-#     μresultsdf = DataFrame(hcat(obsdates,μresults), Dname)
-#     σresultsdf = DataFrame(hcat(obsdates,σresults), Dname)
-#     Aresultsdf = DataFrame(hcat(obsdates,Aresults), D2name)
-#     πbresultsdf = DataFrame(hcat(obsdates,πbresults), Dname)
-#     CSV.write(dir*"filtered_forecasts.csv", forecastdf)
-#     CSV.write(dir*"filtered_means.csv", μresultsdf)
-#     CSV.write(dir*"filtered_variance.csv", σresultsdf)
-#     CSV.write(dir*"filtered_trans_probs.csv", Aresultsdf)
-#     CSV.write(dir*"filtered_state_probs.csv", πbresultsdf)
-# end
 
 function basicsave(data, dates, fname, dataheader; signal::Array{Float64,2} = [], precision=5)
     header = vcat([:date], Symbol.(dataheader))
@@ -795,7 +752,11 @@ function estimatesignals!(opt)
  
      ## Calculate forecasts across all mc draws
      for j in 1:Ndraws, (i,h) in enumerate(opt.horizons)
-         forecasts[j, 2*(i-1)+1:2*(i-1)+2] = collect(forecast((A = Asample[j,:,:], πb=πbsample[j,:], μ=μsample[j,:]), hp, h-opt.signalLen, yobs(opt, opt.endIndex + h) ))
+        if opt.signalLen == h
+            forecasts[j, 2*(i-1)+1:2*(i-1)+2] = collect(forecastsignal((A = Asample[j,:,:], πb=πbsample[j,:], μ=μsample[j,:]), hp, h-opt.signalLen, yobs(opt, opt.endIndex + h), signalvals[j], opt.signalnoise))
+        else
+            forecasts[j, 2*(i-1)+1:2*(i-1)+2] = collect(forecast((A = Asample[j,:,:], πb=πbsample[j,:], μ=μsample[j,:]), hp, h-opt.signalLen, yobs(opt, opt.endIndex + h) ))
+        end
      end
     return (μ = μsample, σ = σsample, πb = πbsample, A = Asample, forecasts = forecasts, obsdates = obsdates, signalvals = signalvals)
 end
