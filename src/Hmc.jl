@@ -541,7 +541,7 @@ function forecast(par, hp::HyperParams, horizon, Yreal)
     return forecast, forecasterror
 end
 
-function forecastsignal(par, hp:HyperParams, horizon, Yreal, signal, signalnoise)
+function forecastsignal(par, hp::HyperParams, horizon, Yreal, signal, signalnoise)
     D = hp.D
     S0 = par.πb'
     S1 = S0 * par.A^(horizon - hp.M)
