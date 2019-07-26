@@ -578,7 +578,9 @@ function forecastinsample(samples, horizon, opt)
 end
 
 function saveinsampleforecasts(forecasts, fname)
-    CSV.write(fname, DataFrame(forecasts, names= [:date, :forecast]))
+    df = DataFrame(forecasts) 
+    names!(df, [:date, :forecast])
+    CSV.write(fname, df)
 end
 
 
