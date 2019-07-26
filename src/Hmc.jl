@@ -533,9 +533,19 @@ function forecast(μ, A, πb, hp::HyperParams, horizon, Yreal)
     """
     Calculate the expected mean horizon-periods ahead and the realized forecast error
     """
-    D = hp.D
     S0 = πb'
     S1 = S0 * A^(horizon - hp.M)
+    forecast = dot(S1, μ)
+    forecasterror = forecast - Yreal
+    return forecast, forecasterror
+end
+
+function forecast2(μ, A, πb, horizon, Yreal)
+    """
+    Calculate the expected mean horizon-periods ahead and the realized forecast error
+    """
+    S0 = πb'
+    S1 = S0 * A^horizon
     forecast = dot(S1, μ)
     forecasterror = forecast - Yreal
     return forecast, forecasterror
@@ -553,6 +563,24 @@ function forecastsignal(μ, π, hp::HyperParams, Yreal, signal, noise)
     forecasterror = forecast - Yreal
     return forecast, forecasterror
 end
+
+function forecastinsample(samples, horizon, opt)
+    forecasts= Array{Float64,2}(undef, opt.endIndex - opt.startIndex + 1, 2)
+    tmp = Array{Float64,2}(undef, opt.Nrun, 2)
+    for date in opt.startIndex:opt.endIndex
+        for j in 1:opt.Nrun, (i,h) in enumerate(opt.horizons)
+            tmp[j,:] = collect(forecast2(samples.μ[j,:], samples.A[j,:,:], samples.πb[j,date,:], h, yobs(opt, date + h) ) )
+        end
+        forecasts[date, 1] = opt.dates[date]
+        forecasts[date, 2] = mean(tmp[:,1])
+    end
+    return forecasts
+end
+
+function saveinsampleforecasts(forecasts, fname)
+    CSV.write(fname, DataFrame(forecasts, names= [:date, :forecast]))
+end
+
 
 
 function basicsave(data, dates, fname, dataheader; signal::Array{Float64,2} = [], precision=5)
