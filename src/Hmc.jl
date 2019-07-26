@@ -529,28 +529,26 @@ function smoothStates(rawdata::AbstractVector{Float64}, dates::AbstractVector{Da
     return πbresults
 end
 
-function forecast(par, hp::HyperParams, horizon, Yreal)
+function forecast(μ, A, πb, hp::HyperParams, horizon, Yreal)
     """
     Calculate the expected mean horizon-periods ahead and the realized forecast error
     """
     D = hp.D
-    S0 = par.πb'
-    S1 = S0 * par.A^(horizon - hp.M)
-    forecast = dot(S1,par.μ)
+    S0 = πb'
+    S1 = S0 * A^(horizon - hp.M)
+    forecast = dot(S1, μ)
     forecasterror = forecast - Yreal
     return forecast, forecasterror
 end
 
-function forecastsignal(par, hp::HyperParams, horizon, Yreal, signal, noise)
+function forecastsignal(μ, π, hp::HyperParams, Yreal, signal, noise)
     D = hp.D
-    S0 = par.πb'
-    S1 = S0 * par.A^(horizon - hp.M)
     f = Array{Float64,1}(undef,hp.D)
-    for i in 1:hp.D 
+    for i in 1:hp.D
         a = noise/(1+noise)
-        f[i] = a * signal + (1-a) * par.μ[i]
+        f[i] = a * signal + (1-a) * μ[i]
     end
-    forecast = dot(S1, f)
+    forecast = dot(π, f)
     forecasterror = forecast - Yreal
     return forecast, forecasterror
 end
@@ -706,11 +704,12 @@ function estimatemodel(opt)
     forecasts= Array{Float64,2}(undef, opt.Nrun, 2*length(opt.horizons))
     ## Calculate forecasts for each draw
     for j in 1:opt.Nrun, (i,h) in enumerate(opt.horizons)
-        forecasts[j, 2*(i-1)+1:2*(i-1)+2] = collect(forecast((A = samples.A[j,:,:], πb=samples.πb[j,end,:], μ=samples.μ[j,:]), hp, h, yobs(opt,opt.endIndex + h)) )
+        forecasts[j, 2*(i-1)+1:2*(i-1)+2] = collect(forecast(samples.μ[j,:], samples.A[j,:,:], samples.πb[j,end,:], hp, h, yobs(opt, opt.endIndex + h) ) )
     end
     obsdates = fill(opt.dates[opt.endIndex], opt.Nrun)
     return merge(samples, (forecasts = forecasts, obsdates = obsdates))
 end
+
 
 function estimatesignals!(opt)
     if opt.σsignal == 0
@@ -729,33 +728,32 @@ function estimatesignals!(opt)
 
      ## Sample with noise
      println("Data end date: $(Hmc.enddate(opt)) | End Index: $(opt.endIndex)")
-     Y = Hmc.makey(opt, opt.signalLen)
-     Y0sig = Y[opt.endIndex+1:opt.endIndex+opt.signalLen]
-     (A, ρ, μ, σ, β, πf, πb, Pf, Pb, X) = makeParams(Y, opt.D)
+     Yreal = makey(opt, opt.signalLen)
+     Yrealsig = Yreal[opt.endIndex+1:opt.endIndex+opt.signalLen]
+     Yfake = copy(Yreal)
+     (A, ρ, μ, σ, β, πf, πb, Pf, Pb, X) = makeParams(Yfake, opt.D)
      hp = HyperParams(opt)
      for i in 1:opt.noiseSamples
-         Y[opt.endIndex+1:opt.endIndex+opt.signalLen] = Y0sig + rand(Normal(0, opt.σsignal), opt.signalLen)
+         Yfake[opt.endIndex+1:opt.endIndex+opt.signalLen] = Yrealsig + rand(Normal(0, 1), opt.signalLen) .* opt.σsignal
  
          # Estimate model
-         samples = gibbssample!(A, ρ, μ, σ, β, πf, πb, Pf, Pb, X, hp, Y; burnin = opt.signalburnin, Nrun = opt.signalNrun)
+         samples = gibbssample!(A, ρ, μ, σ, β, πf, πb, Pf, Pb, X, hp, Yfake; burnin = opt.signalburnin, Nrun = opt.signalNrun)
  
          # Save results to array
          μsample[opt.signalNrun*(i-1)+1:opt.signalNrun*i,:] = samples.μ
          σsample[opt.signalNrun*(i-1)+1:opt.signalNrun*i,:] = samples.σ
-         πbsample[opt.signalNrun*(i-1)+1:opt.signalNrun*i,:] = samples.πb[:,end,:]
+         πbsample[opt.signalNrun*(i-1)+1:opt.signalNrun*i,:] = samples.πb[:,end-opt.signalLen,:]
          Asample[opt.signalNrun*(i-1)+1:opt.signalNrun*i,:,:] = samples.A
          obsdates[opt.signalNrun*(i-1)+1:opt.signalNrun*i] .= Hmc.enddate(opt)
          for j in 1:opt.signalLen
-             signalvals[opt.signalNrun*(i-1)+1:opt.signalNrun*i,j] .= Y[opt.endIndex+j]
+             signalvals[opt.signalNrun*(i-1)+1:opt.signalNrun*i,j] .= Yfake[opt.endIndex+j]
          end
-     end
- 
-     ## Calculate forecasts across all mc draws
-     for j in 1:Ndraws, (i,h) in enumerate(opt.horizons)
-        if opt.signalLen == h
-            forecasts[j, 2*(i-1)+1:2*(i-1)+2] = collect(forecastsignal((A = Asample[j,:,:], πb=πbsample[j,:], μ=μsample[j,:]), hp, h-opt.signalLen, yobs(opt, opt.endIndex + h), signalvals[j], opt.noise))
-        else
-            forecasts[j, 2*(i-1)+1:2*(i-1)+2] = collect(forecast((A = Asample[j,:,:], πb=πbsample[j,:], μ=μsample[j,:]), hp, h-opt.signalLen, yobs(opt, opt.endIndex + h) ))
+         for j in 1:opt.signalNrun, (i,h) in enumerate(opt.horizons)
+            if opt.signalLen < h
+                forecasts[(i-1)*opt.signalNrun + j, 2*(i-1)+1:2*(i-1)+2] = collect(forecast(samples.μ[j,:], samples.A[j,:,:], samples.πb[j,end,:], hp, h-opt.signalLen, yobs(opt, opt.endIndex + h) ) )
+            elseif opt.signalLen == h
+                forecasts[(i-1)*opt.signalNrun + j, 2*(i-1)+1:2*(i-1)+2] = collect( forecastsignal(samples.μ[j,:], samples.πb[j,end,:], hp, yobs(opt, opt.endIndex + h), Yfake[opt.endIndex + h], opt.σsignal ) )
+            end
         end
      end
     return (μ = μsample, σ = σsample, πb = πbsample, A = Asample, forecasts = forecasts, obsdates = obsdates, signalvals = signalvals)
