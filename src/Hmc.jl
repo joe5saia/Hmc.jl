@@ -565,7 +565,7 @@ function forecastsignal(μ, π, hp::HyperParams, Yreal, signal, noise)
 end
 
 function forecastinsample(samples, horizon, opt)
-    forecasts= Array{Float64,2}(undef, opt.endIndex - opt.startIndex + 1, 2)
+    forecasts= Array{Any,2}(undef, opt.endIndex - opt.startIndex + 1, 2)
     tmp = Array{Float64,2}(undef, opt.Nrun, 2)
     for date in opt.startIndex:opt.endIndex
         for j in 1:opt.Nrun, (i,h) in enumerate(opt.horizons)
