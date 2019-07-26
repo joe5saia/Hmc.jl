@@ -545,7 +545,7 @@ function forecastsignal(μ, π, hp::HyperParams, Yreal, signal, noise)
     D = hp.D
     f = Array{Float64,1}(undef,hp.D)
     for i in 1:hp.D
-        a = noise/(1+noise)
+        a = (1/noise)/(1+1/noise)
         f[i] = a * signal + (1-a) * μ[i]
     end
     forecast = dot(π, f)
