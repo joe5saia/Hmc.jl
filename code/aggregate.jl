@@ -27,7 +27,7 @@ using Hmc
 
 for s in ["official"]
     Hmc.runaggregate(joinpath(root_dir, "data/output/$(s)"))
-    for n in ["0.01"], m in ["12"]
+    for n in ["0.01"], m in ["1"]
         p = joinpath(root_dir, "data/output/signals_$(s)_noise_$(n)_len_$(m)")
         if ispath(p)
             Hmc.runaggregate(p)

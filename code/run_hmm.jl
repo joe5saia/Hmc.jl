@@ -139,7 +139,7 @@ end
 #    Hmc.saveresults(samples, opt; hassignals = true)
 #end
 
-opt.signalLen=12
+opt.signalLen=1
 opt.savenosignal=false
 for noiselevel in [0.01]
     println("Running noise = $(noiselevel) sample")
