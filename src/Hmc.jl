@@ -751,9 +751,9 @@ function estimatesignals!(opt)
          end
          for j in 1:opt.signalNrun, (i,h) in enumerate(opt.horizons)
             if opt.signalLen < h
-                forecasts[(i-1)*opt.signalNrun + j, 2*(i-1)+1:2*(i-1)+2] = collect(forecast(samples.μ[j,:], samples.A[j,:,:], samples.πb[j,end,:], hp, h-opt.signalLen, yobs(opt, opt.endIndex + h) ) )
+                forecasts[(j-1)*opt.signalNrun + j, 2*(i-1)+1:2*(i-1)+2] = collect(forecast(samples.μ[j,:], samples.A[j,:,:], samples.πb[j,end,:], hp, h-opt.signalLen, yobs(opt, opt.endIndex + h) ) )
             elseif opt.signalLen == h
-                forecasts[(i-1)*opt.signalNrun + j, 2*(i-1)+1:2*(i-1)+2] = collect( forecastsignal(samples.μ[j,:], samples.πb[j,end,:], hp, yobs(opt, opt.endIndex + h), Yfake[opt.endIndex + h], opt.σsignal ) )
+                forecasts[(j-1)*opt.signalNrun + j, 2*(i-1)+1:2*(i-1)+2] = collect( forecastsignal(samples.μ[j,:], samples.πb[j,end,:], hp, yobs(opt, opt.endIndex + h), Yfake[opt.endIndex + h], opt.σsignal ) )
             end
         end
      end
