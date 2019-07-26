@@ -28,10 +28,11 @@ using Hmc
 for s in ["official"]
     Hmc.runaggregate(joinpath(root_dir, "data/output/$(s)"))
     for n in ["0.01"], m in ["12"]
-        if ispath(joinpath(root_dir, "data/output/signals_$(s)_noise_$(n)_len_$(m)"))
-            Hmc.runaggregate(joinpath(root_dir, "data/output/signals_$(s)_noise_$(n)_len_$(m)"))
+        p = joinpath(root_dir, "data/output/signals_$(s)_noise_$(n)_len_$(m)")
+        if ispath(p)
+            Hmc.runaggregate(p)
         else
-            println("$(joinpath(root_dir, "data/output/signals_$(s)_noise_$(n)_len_$(m)")) is not a valid path" )
+            println(p * " is not a valid path" )
         end
     end
 end
