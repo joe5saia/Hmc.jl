@@ -106,7 +106,7 @@ else
         signalNrun = 3_000,
         signalLen = 1,
         noise = 0.0,
-        noiseSamples = 30,
+        noiseSamples = 300,
         σsignal = 0.0,
         savenosignal= false,
         series = series,
@@ -115,33 +115,33 @@ else
 end
 
 
-## Estimate model for each horizion we want with no signals
-# println("Estimating base model without Signals. Date range is $(Hmc.startdate(opt)) to $(Hmc.enddate(opt))")
-# !ispath("data/output/$(opt.series)/") && mkpath("data/output/$(opt.series)/")
-# opt.signalLen=0
-# opt.savenosignal=true
-# Random.seed!(opt.seed)
-# samples = Hmc.estimatemodel(opt)
-# Hmc.saveresults(samples, opt; hassignals = false)
+# Estimate model for each horizion we want with no signals
+println("Estimating base model without Signals. Date range is $(Hmc.startdate(opt)) to $(Hmc.enddate(opt))")
+!ispath("data/output/$(opt.series)/") && mkpath("data/output/$(opt.series)/")
+opt.signalLen=0
+opt.savenosignal=true
+Random.seed!(opt.seed)
+samples = Hmc.estimatemodel(opt)
+Hmc.saveresults(samples, opt; hassignals = false)
 
 
 
-## Estimate model for each horizon we want with signals for different noise levels
-#opt.signalLen=1
-#opt.savenosignal=false
-#for noiselevel in [0.1 1.0 3.0]
-#    println("Running noise = $(noiselevel) sample")
-#    opt.noise=noiselevel
-#    p = "data/output/signals_$(opt.series)_noise_$(opt.noise)_len_$(opt.signalLen)"
-#    !ispath(p) && mkpath(p)
-#    Random.seed!(opt.seed)
-#    samples = Hmc.estimatesignals!(opt)
-#    Hmc.saveresults(samples, opt; hassignals = true)
-#end
+# Estimate model for each horizon we want with signals for different noise levels
+opt.signalLen=1
+opt.savenosignal=false
+for noiselevel in [0.1 1.0 3.0]
+    println("Running noise = $(noiselevel) sample")
+    opt.noise=noiselevel
+    p = "data/output/signals_$(opt.series)_noise_$(opt.noise)_len_$(opt.signalLen)"
+    !ispath(p) && mkpath(p)
+    Random.seed!(opt.seed)
+    samples = Hmc.estimatesignals!(opt)
+    Hmc.saveresults(samples, opt; hassignals = true)
+end
 
 opt.signalLen=1
 opt.savenosignal=false
-for noiselevel in [0.01]
+for noiselevel in [0.1 1.0 3.0]
     println("Running noise = $(noiselevel) sample")
     opt.noise=noiselevel
     p = "data/output/signals_$(opt.series)_noise_$(opt.noise)_len_$(opt.signalLen)"
