@@ -565,21 +565,26 @@ function forecastsignal(μ, π, hp::HyperParams, Yreal, signal, noise)
 end
 
 function forecastinsample(samples, horizon, opt)
-    forecasts= Array{Any,2}(undef, opt.endIndex - opt.startIndex + 1, 2)
+    drange = opt.startIndex:opt.endIndex
+    forecasts= Array{Any,2}(undef, length(drange), 8)
     tmp = Array{Float64,2}(undef, opt.Nrun, 2)
-    for date in opt.startIndex:opt.endIndex
+    for date in drange
         for j in 1:opt.Nrun, (i,h) in enumerate(opt.horizons)
             tmp[j,:] = collect(forecast2(samples.μ[j,:], samples.A[j,:,:], samples.πb[j,date,:], h, yobs(opt, date + h) ) )
         end
         forecasts[date, 1] = opt.dates[date]
         forecasts[date, 2] = mean(tmp[:,1])
+        forecasts[date, 3] = mean(tmp[:,2])
+        forecasts[date, 4] =  yobs(opt, date)
+        forecasts[date, 5] =  yobs(opt, date + horizon[1])
+        forecasts[date, 6:8] =  mean(samples.πb[:,date,:], dims=1)
     end
     return forecasts
 end
 
 function saveinsampleforecasts(forecasts, fname)
     df = DataFrame(forecasts) 
-    names!(df, [:date, :forecast])
+    names!(df, [:date, :forecast, :forecasterror, :current, :future, :s1, :s2, :s3])
     CSV.write(fname, df)
 end
 

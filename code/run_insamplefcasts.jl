@@ -40,7 +40,7 @@ startindex = findfirst(isequal(Date(1970, 1)), rawdata[!, :date])
         Vector{Float64}(rawdata[!,:offic_inf]), 
         Vector{Date}(rawdata[!,:date]),
         startIndex=1,
-        endIndex=579,
+        endIndex=576,
         horizons=[12],
         D = 3,
         burnin = 20_000,
