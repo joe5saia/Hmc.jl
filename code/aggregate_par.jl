@@ -32,8 +32,4 @@ if ispath(p)
     Hmc.runaggregate(p, var)
 else
     println(p * " is not a valid path" )
-
-
-
-
-
+end
