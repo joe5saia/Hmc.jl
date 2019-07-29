@@ -943,6 +943,33 @@ function runaggregate(datadir)
     end
 end
 
+
+function runaggregate(datadir, var)
+    if !ispath(datadir)
+        @error "$(datadir) is not a valid directory"
+        return
+    end
+    println("Using data in $(datadir)")
+
+    ## Grab header of first file and test if it has signals
+    files = glob("filtered_means*", datadir)
+    headers = Vector(CSV.read(files[1]; header = false, limit = 1)[1,:])
+    hassignal = any(occursin.("signal", headers))
+    !hassignal ? groups = [:date] : groups = [:date, :signal_1]
+
+    println("Summarizing " * var)
+    files = glob("$(var)*", datadir)
+    files = files[.!occursin.("summary", files)]
+    files = files[.!occursin.("dispersion", files)]
+    outdf = DataFrames.aggregate(CSV.read(files[1]), groups, mean)
+    for f in files[2:end]
+        df = CSV.read(f)
+        df2 = DataFrames.aggregate(df, groups, mean)
+        append!(outdf,df2)
+    end
+    CSV.write(joinpath(datadir,"$(var)_summary.csv"), outdf)
+end
+
 function calcdispersion(datadir)
     if !ispath(datadir)
         @error "$(datadir) is not a valid directory"
