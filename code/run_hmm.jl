@@ -75,28 +75,26 @@ if (length(ARGS) == 3) && (ARGS[3] == "test")
     opt = Hmc.estopt(
         Vector{Float64}(rawdata[!,dataseries]), 
         Vector{Date}(rawdata[!,:date]),
-        startIndex=startindex,
-        endIndex=dateindex,
+        sampleRange=startindex:dateindex, 
+        signalRange=2:1, 
+        endIndex = dateindex,
         horizons=[12],
-        D = 3,
-        burnin = 300,
-        Nrun = 10,
-        signalburnin = 100,
-        signalNrun = 3,
-        signalLen = 0,
-        noise = 0.0,
-        noiseSamples = 3,
-        σsignal = 0.0,
-        savenosignal= true,
-        series = series,
-        seed = 1234,
+        D=3, 
+        burnin = 10, 
+        Nrun = 10, 
+        signalburnin = 3, 
+        signalNrun = 5, 
+        noiseSamples = 4,
+        series = series
     )
 else
     ## Run parameters
+    println("Using testing actual settings\n")
     opt = Hmc.estopt(
         Vector{Float64}(rawdata[!,dataseries]), 
         Vector{Date}(rawdata[!,:date]),
-        startIndex=startindex,
+        sampleRange=startindex:dateindex, 
+        signalRange=2:1, 
         endIndex=dateindex,
         horizons=[12],
         D = 3,
@@ -104,47 +102,65 @@ else
         Nrun = 10_000,
         signalburnin = 10_000,
         signalNrun = 3_000,
-        signalLen = 1,
-        noise = 0.0,
         noiseSamples = 300,
-        σsignal = 0.0,
-        savenosignal= false,
-        series = series,
-        seed = 1234,
+        series = series
     )
 end
 
 
-#Estimate model for each horizion we want with no signals
-println("Estimating base model without Signals. Date range is $(Hmc.startdate(opt)) to $(Hmc.enddate(opt))")
-!ispath("data/output/$(opt.series)/") && mkpath("data/output/$(opt.series)/")
-opt.signalLen=0
-opt.savenosignal=true
-Random.seed!(opt.seed)
-samples = Hmc.estimatemodel(opt)
-Hmc.saveresults(samples, opt; hassignals = false)
- 
-#Estimate model for each horizon we want with signals for different noise levels
-opt.signalLen=1
-opt.savenosignal=false
-for noiselevel in [0.1 1.0 3.0]
-    println("Running noise = $(noiselevel) sample")
-    opt.noise=noiselevel
-    p = "data/output/signals_$(opt.series)_noise_$(opt.noise)_len_$(opt.signalLen)"
+if false
+    #Estimate model for each horizion we want with no signals
+    println("Estimating base model without Signals. Date range is $(Hmc.startdate(opt)) to $(Hmc.enddate(opt))")
+    p = "data/output/$(opt.series)/"
     !ispath(p) && mkpath(p)
     Random.seed!(opt.seed)
-    samples = Hmc.estimatesignals!(opt)
-    Hmc.saveresults(samples, opt; hassignals = true)
+    samples = Hmc.estimatemodel(opt)
+    Hmc.saveresults(samples, opt, p; hassignals = false)
+    
+    #Estimate model for each horizon we want with signals for different noise levels
+    signallength = 1
+    opt.sampleRange = startindex:dateindex+signallength
+    opt.signalRange = dateindex+1:dateindex+signallength
+    opt.signalSave = dateindex+1:dateindex+signallength
+    for noiselevel in [0.1 1.0 3.0]
+        println("Running noise = $(noiselevel) sample")
+        opt.noise=noiselevel
+        p = "data/output/signals_$(opt.series)_noise_$(opt.noise)_len_$(opt.signalLen)"
+        !ispath(p) && mkpath(p)
+        Random.seed!(opt.seed)
+        samples = Hmc.estimatesignals!(opt)
+        Hmc.saveresults(samples, opt, p; hassignals = true)
+    end
+
+    signallength = 12
+    opt.sampleRange = startindex:dateindex+signallength
+    opt.signalRange = dateindex+1:dateindex+signallength
+    opt.signalSave = dateindex+1:dateindex+signallength
+    for noiselevel in [0.1 1.0 3.0]
+        println("Running noise = $(noiselevel) sample")
+        opt.noise=noiselevel
+        p = "data/output/signals_$(opt.series)_noise_$(opt.noise)_len_$(opt.signalLen)"
+        !ispath(p) && mkpath(p)
+        Random.seed!(opt.seed)
+        samples = Hmc.estimatesignals!(opt)
+        Hmc.saveresults(samples, opt, p; hassignals = true)
+    end
 end
 
-opt.signalLen=12
-opt.savenosignal=false
-for noiselevel in [0.1 1.0 3.0]
-    println("Running noise = $(noiselevel) sample")
-    opt.noise=noiselevel
-    p = "data/output/signals_$(opt.series)_noise_$(opt.noise)_len_$(opt.signalLen)"
-    !ispath(p) && mkpath(p)
-    Random.seed!(opt.seed)
-    samples = Hmc.estimatesignals!(opt)
-    Hmc.saveresults(samples, opt; hassignals = true)
+if true
+    ## Make everything a signal 
+
+    opt.sampleRange = startindex:dateindex
+    opt.signalRange = startindex:dateindex
+    opt.signalSave = dateindex-1:dateindex
+    for noiselevel in [0.1 1.0 3.0]
+        println("Running noise = $(noiselevel) sample")
+        opt.noise=noiselevel
+        p = "data/output/signals_$(opt.series)_noise_$(opt.noise)_allsignal"
+        !ispath(p) && mkpath(p)
+        Random.seed!(opt.seed)
+        samples = Hmc.estimatesignals!(opt)
+        Hmc.saveresults(samples, opt, p; hassignals = true)
+    end
+
 end

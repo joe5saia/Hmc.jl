@@ -20,8 +20,7 @@ using Hmc
 #Number of observations
 T = 500
 # State Transition Matrix
-A99 = [0.25 0.75;
-       0.60 0.40]
+A99 = [0.50 0.50; 0.20 0.80]
 # means and variances
 μ99 = [-5.0, 4.0]
 σ99 = [1.0, 0.50]
@@ -32,31 +31,31 @@ dates = range(Date(1970, 1, 1), step = Dates.Month(1), length = T)
 opt = Hmc.estopt(
        Vector{Float64}(Y99), 
        Vector{Date}(dates),
-       startIndex=1,
+       sampleRange=1:T-24,
+       signalRange=2:1,
        endIndex=T-24,
        horizons=[12],
        D = 2,
-       burnin = 20_000,
-       Nrun = 10_000,
-       signalburnin = 20_000,
-       signalNrun = 3_333,
-       signalLen = 1,
-       noise = 10.0,
-       noiseSamples = 3,
-       σsignal = 0.0,
-       savenosignal= false,
-       series = "test",
-       seed = 1234,
+       burnin = 3_000,
+       Nrun = 1_000,
+       signalburnin = 1,
+       signalNrun = 1,
+       series = "test"
 )
+
+
 
 Random.seed!(opt.seed)
 samples = Hmc.estimatemodel(opt)
 
 println("True mean: $(μ99)\nEstimated mean $(vec(mean(samples.μ, dims=1)))")
 println("True variances: $(σ99)\nEstimated variances $(vec(mean(samples.σ, dims=1)))")
+println("True A: $(vec(A99))\nEstimated A $(vec(mean(samples.A, dims=1)))")
 
 @test all(isapprox.(vec(mean(samples.μ, dims=1)), μ99, atol=0.3))
 @test all(isapprox.(vec(mean(samples.σ, dims=1)), σ99, atol=0.5))
+
+exit()
 
 Random.seed!(opt.seed)
 samples = Hmc.estimatesignals!(opt)
