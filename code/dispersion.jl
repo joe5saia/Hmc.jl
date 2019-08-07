@@ -25,6 +25,7 @@ Pkg.activate(root_dir)
 push!(LOAD_PATH, joinpath(root_dir, "src"))
 using Hmc
 
+if false
 for s in ["official"]
     for n in ["0.01"]
         Hmc.calcdispersion(joinpath(root_dir, "data/output/signals/$(s)/noise_$(n)"))
@@ -40,4 +41,19 @@ for s in ["official"]
             println(p * " is not a valid path" )
         end
     end
+end
+end
+
+if true
+
+for s in ["official"]
+    for n in [0.1 1.0 3.0], m in [12]
+        p = joinpath(root_dir, "data/output/signals_$(s)_noise_$(n)_allsignal")
+        if ispath(p)
+            Hmc.calcdispersion(p)
+        else
+            println(p * " is not a valid path" )
+        end
+    end
+end
 end

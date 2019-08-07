@@ -1049,7 +1049,7 @@ function runaggregate(datadir, var)
     files = glob("filtered_means*", datadir)
     headers = Vector(CSV.read(files[1]; header = false, limit = 1)[1,:])
     hassignal = any(occursin.("signal", headers))
-    !hassignal ? groups = [:date] : groups = [:date, :signalids]
+    !hassignal ? groups = [:date] : groups = [:date, :signalid]
 
     println("Summarizing " * var)
     files = glob("$(var)*", datadir)

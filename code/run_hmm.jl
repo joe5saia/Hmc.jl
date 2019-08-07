@@ -153,7 +153,7 @@ if true
     opt.sampleRange = startindex:dateindex
     opt.signalRange = startindex:dateindex
     opt.signalSave = dateindex-1:dateindex
-    for noiselevel in [0.1 1.0 3.0]
+    for noiselevel in [3.0]
         println("Running noise = $(noiselevel) sample")
         opt.noise=noiselevel
         p = "data/output/signals_$(opt.series)_noise_$(opt.noise)_allsignal"
