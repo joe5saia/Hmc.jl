@@ -21,6 +21,12 @@ mutable struct estopt
     signalRange::AbstractArray{Int,1}
     signalSave::AbstractArray{Int,1}
     obsRange::AbstractArray{Int,1}
+    sampleRangeit::Array{CartesianIndex{1},1}
+    sampleRangeits2::Array{CartesianIndex{1},1}
+    sampleRangeite2::Array{CartesianIndex{1},1}
+    sampleRangeitback::Array{CartesianIndex{1},1}
+    obsRangeit::Array{CartesianIndex{1},1}
+    signalRangeit::Array{CartesianIndex{1},1}
     endIndex::Int
     horizons::AbstractArray{Int,1}
     D::Int
@@ -54,9 +60,15 @@ mutable struct estopt
         )
         !issubset(signalRange, sampleRange) && @error "signalRange is not a subset of sampleRange"
         !issubset(signalSave, signalRange) && @error "signalSave is not a subset of signalRange"
-        obsrange = setdiff(sampleRange, signalRange)
-        new(rawdata, dates, sampleRange, signalRange, signalSave, obsrange, endIndex, horizons, D, burnin, Nrun, signalburnin, signalNrun, noise,
-            noiseSamples, σsignal, series, seed)
+        obsRange = setdiff(sampleRange, signalRange)
+        sampleRangeit = [CartesianIndex(i) for i in sampleRange]
+        sampleRangeits2 = [CartesianIndex(i) for i in sampleRange[2:end]] #range starting at 2
+        sampleRangeite2 =  [CartesianIndex(i) for i in sampleRange[1:end-1]]#range ending 1 early
+        sampleRangeitback = [CartesianIndex(i) for i in reverse(sampleRange[1:end-1])] #range starting from second to last going to 1
+        obsRangeit = [CartesianIndex(i) for i in obsRange]
+        signalRangeit = [CartesianIndex(i) for i in signalRange]
+        new(rawdata, dates, sampleRange, signalRange, signalSave, obsRange, sampleRangeit, sampleRangeits2, sampleRangeite2, sampleRangeitback, obsRangeit, signalRangeit,
+            endIndex, horizons, D, burnin, Nrun, signalburnin, signalNrun, noise, noiseSamples, σsignal, series, seed)
     end
 end
 
@@ -229,7 +241,7 @@ function update_μσ!(μ::AbstractVector{Float64}, σ::AbstractVector{Float64}, 
     Sm2 = zeros(eltype(Y),D) # sum of (signals - sbar)^2 in i
     ## Statistics
     ## Observations 
-    for t in opt.obsRange
+    for t in opt.obsRangeit
         i = X[t]
         Ni[i] += oneunit(i)
         S[i] += Y[t]
@@ -243,7 +255,7 @@ function update_μσ!(μ::AbstractVector{Float64}, σ::AbstractVector{Float64}, 
     end
 
     ## Signals
-    for t in opt.signalRange
+    for t in opt.signalRangeit
         i = X[t]
         Mi[i] += oneunit(i)
         Sm[i] += Y[t]
@@ -266,13 +278,13 @@ function update_μσ!(μ::AbstractVector{Float64}, σ::AbstractVector{Float64}, 
     end
 
     ## Observations
-    for t in opt.obsRange
+    for t in opt.obsRangeit
         i = X[t]
         S2[i] += (Y[t] - ybar[i])^2
     end
 
     ## Signals 
-    for t in opt.signalRange
+    for t in opt.signalRangeit
         i = X[t]
         Sm2[i] += (Y[t] - sbar[i])^2
     end
@@ -351,7 +363,6 @@ function forwardupdate_P!(P::AbstractArray{Float64,3}, π::AbstractMatrix{Float6
     Forward recurision for the state probabilities in place
     """
     π[:] .= 0.0
-
     
     ## Create emission probability distributions
     distobs = Array{Normal{Float64}}(undef,hp.D)
@@ -381,23 +392,28 @@ function forwardupdate_P!(P::AbstractArray{Float64,3}, π::AbstractMatrix{Float6
         π[1,s] += P[1,r,s]
     end
 
-    for t in Iterators.rest(opt.sampleRange,1)
+    #println("pi 1 is $(π[1,:])")
+
+    for (t,t2) in zip(opt.sampleRangeits2, opt.sampleRangeit)
         total = 0.0
 
-#        if t in opt.obsRange
-         if true
-        
+        if t in opt.obsRangeit
             #println("in obs for $t")
+            #println("pi is $(π[t2,:])")
+            #println("Y is $(Y[t])")
             for s in 1:hp.D, r in 1:hp.D
-                P[t,r,s] = π[t-1,r] * A[r,s] * pdf(distobs[s], Y[t])
+                #println("Product is $(π[t2,r] * A[r,s] * pdf(distobs[s], Y[t]))")
+                P[t,r,s] = π[t2,r] * A[r,s] * pdf(distobs[s], Y[t])
+                #println("P is $(P[t,r,s])")
                 total += P[t,r,s]
             end
+            #println("P is $(P[t,:,:])")
         
         else
         
             #println("in sig for $t")
             for s in 1:hp.D, r in 1:hp.D
-                P[t,r,s] = π[t-1,r] * A[r,s] * pdf(distsig[s], Y[t])
+                P[t,r,s] = π[t2,r] * A[r,s] * pdf(distsig[s], Y[t])
                 total += P[t,r,s]
            end
 
@@ -419,12 +435,12 @@ function backwardupdate_P!(Pb::AbstractArray{Float64,3}, πb::AbstractMatrix{Flo
     """
     Backward recurision for state probabilities in place
     """
-    πb[:] .= 0.0
+    πb[:,:] .= 0.0
     Pb[end,:,:] = Pf[end,:,:]
     πb[end,:] = πf[end,:]
-    for t in Iterators.rest(Iterators.reverse(opt.sampleRange),1)
+    for t in opt.sampleRangeitback
         for s in 1:hp.D, r in 1:hp.D
-            πb[t,r] += Pb[t+1,r,s]
+            πb[t,r] += Pb[t[1]+1,r,s]
         end
         for s in 1:hp.D, r in 1:hp.D
             Pb[t,r,s] = Pf[t,r,s] * πb[t,s]/πf[t,s]
@@ -432,16 +448,17 @@ function backwardupdate_P!(Pb::AbstractArray{Float64,3}, πb::AbstractMatrix{Flo
     end
 end
 
-function update_X!(X::AbstractVector{Int64}, π::AbstractMatrix{Float64}, P::AbstractArray{Float64,3}, hp::HyperParams)
+function update_X!(X::AbstractVector{Int64}, π::AbstractMatrix{Float64}, P::AbstractArray{Float64,3}, hp::HyperParams, opt::estopt)
     """
     Update the state vector in place
-    """
+    """    
     p = zeros(hp.D)
     X[end] = rand(Distributions.Categorical(π[end,:]))
-    for k in Iterators.reverse(1:hp.N-1)
+    for k in opt.sampleRangeitback
+        k2 = k[1]+1
         total = 0.0
         for r in 1:hp.D
-            p[r] = P[k+1,r,X[k+1]]
+            p[r] = P[k2,r,X[k2]]
             total += p[r]
         end
         if total > eps()
@@ -455,6 +472,7 @@ function update_X!(X::AbstractVector{Int64}, π::AbstractMatrix{Float64}, P::Abs
         end
         X[k] = rand(Distributions.Categorical( p ))
     end
+    return 1
 end
 
 function gibbssweep!(μ::AbstractVector{Float64}, σ::AbstractVector{Float64}, β::AbstractVector{Float64}, ρ::AbstractVector{Float64}, A::AbstractMatrix{Float64}, πf::AbstractMatrix{Float64}, πb::AbstractMatrix{Float64}, Pf::AbstractArray{Float64,3}, Pb::AbstractArray{Float64,3}, X::AbstractVector{Int64}, hp::HyperParams, Y, opt::estopt)
@@ -484,8 +502,8 @@ function gibbssweep!(μ::AbstractVector{Float64}, σ::AbstractVector{Float64}, �
         end
     end
     πf[:] = πf[:, order]
-    πb[:] = πf[:, order]
-    update_X!(X, πf, Pf, hp)
+    πb[:] = πb[:, order]
+    update_X!(X, πf, Pf, hp, opt)
 end
 
 function gibbssample!(A::AbstractMatrix{Float64},
@@ -510,6 +528,8 @@ function gibbssample!(A::AbstractMatrix{Float64},
     """
     D = hp.D
     N = hp.N
+    ## Make some iterators that we will use alot
+
     #μ[:] = [-5.0, 4.0]
     #σ[:] = [1.0, 0.50]
     #ρ[:] = [0.5, 0.5]
@@ -627,18 +647,7 @@ function smoothStates(rawdata::AbstractVector{Float64}, dates::AbstractVector{Da
     return πbresults
 end
 
-function forecast(μ, A, πb, hp::HyperParams, horizon, Yreal)
-    """
-    Calculate the expected mean horizon-periods ahead and the realized forecast error
-    """
-    S0 = πb'
-    S1 = S0 * A^(horizon - hp.M)
-    forecast = dot(S1, μ)
-    forecasterror = forecast - Yreal
-    return forecast, forecasterror
-end
-
-function forecast2(μ, A, πb, horizon, Yreal)
+function forecast(μ, A, πb, horizon, Yreal)
     """
     Calculate the expected mean horizon-periods ahead and the realized forecast error
     """
@@ -648,6 +657,7 @@ function forecast2(μ, A, πb, horizon, Yreal)
     forecasterror = forecast - Yreal
     return forecast, forecasterror
 end
+
 
 function forecastsignal(μ, π, hp::HyperParams, Yreal, signal, noise)
     D = hp.D
@@ -841,7 +851,7 @@ function estimatemodel(opt)
     forecasts= Array{Float64,2}(undef, opt.Nrun, 2*length(opt.horizons))
     ## Calculate forecasts for each draw
     for j in 1:opt.Nrun, (i,h) in enumerate(opt.horizons)
-        forecasts[j, 2*(i-1)+1:2*(i-1)+2] = collect(forecast(samples.μ[j,:], samples.A[j,:,:], samples.πb[j,end,:], hp, h, yobs(opt, opt.endIndex + h) ) )
+        forecasts[j, 2*(i-1)+1:2*(i-1)+2] = collect(forecast(samples.μ[j,:], samples.A[j,:,:], samples.πb[j,end,:], h, yobs(opt, opt.endIndex + h) ) )
     end
     obsdates = fill(enddate(opt), opt.Nrun)
     return merge(samples, (forecasts = forecasts, obsdates = obsdates))
@@ -887,11 +897,7 @@ function estimatesignals!(opt)
         signalvals[nowRange,:] = repeat(Yfake[opt.signalSave]', opt.signalNrun)
         for (idx, j) in enumerate(nowRange), (k,h) in enumerate(opt.horizons)
             if sigLen < h
-                samples.μ[idx,:]
-                samples.A[idx,:,:]
-                samples.πb[idx, opt.sampleRange[end], :]
-                forecasts[j, 2*(k-1)+1:2*(k-1)+2]
-                forecasts[j, 2*(k-1)+1:2*(k-1)+2] = collect(forecast(samples.μ[idx,:], samples.A[idx,:,:], samples.πb[idx, opt.sampleRange[end], :], hp, h-sigLen, yobs(opt, opt.endIndex + h)))
+                forecasts[j, 2*(k-1)+1:2*(k-1)+2] = collect(forecast(samples.μ[idx,:], samples.A[idx,:,:], samples.πb[idx, opt.sampleRange[end], :], h-sigLen, yobs(opt, opt.endIndex + h)))
             elseif sigLen == h
                 forecasts[j, 2*(k-1)+1:2*(k-1)+2] = collect(forecastsignal(samples.μ[idx,:], samples.πb[idx,end,:], hp, yobs(opt, opt.endIndex + h), Yfake[opt.endIndex + h], opt.σsignal))
             end

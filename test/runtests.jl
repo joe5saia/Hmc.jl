@@ -1,4 +1,4 @@
-using Dates, Test, Statistics, Random
+using Dates, Test, Statistics, Random, BenchmarkTools
 
 if ispath("/moto/sscc/projects/biasedexpectations")
     root_dir = "/moto/sscc/projects/biasedexpectations"
@@ -47,6 +47,7 @@ opt = Hmc.estopt(
 
 Random.seed!(opt.seed)
 samples = Hmc.estimatemodel(opt)
+
 
 println("True mean: $(μ99)\nEstimated mean $(vec(mean(samples.μ, dims=1)))")
 println("True variances: $(σ99)\nEstimated variances $(vec(mean(samples.σ, dims=1)))")
