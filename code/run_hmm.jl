@@ -89,7 +89,7 @@ if (length(ARGS) == 3) && (ARGS[3] == "test")
     )
 else
     ## Run parameters
-    println("Using testing actual settings\n")
+    println("Using actual settings\n")
     opt = Hmc.estopt(
         Vector{Float64}(rawdata[!,dataseries]), 
         Vector{Date}(rawdata[!,:date]),
@@ -101,7 +101,7 @@ else
         burnin = 20_000,
         Nrun = 10_000,
         signalburnin = 10_000,
-        signalNrun = 3_000,
+        signalNrun = 5_000,
         noiseSamples = 300,
         series = series
     )
@@ -140,6 +140,7 @@ if true
     for noiselevel in [0.1 1.0 3.0]
         println("Running noise = $(noiselevel) sample")
         opt.noise=noiselevel
+        opt.σsignal=0
         p = "data/output/signals_$(opt.series)_noise_$(opt.noise)_len_$(opt.signalLen)"
         !ispath(p) && mkpath(p)
         Random.seed!(opt.seed)
@@ -156,6 +157,7 @@ if false
     for noiselevel in [0.1 1.0 3.0]
         println("Running noise = $(noiselevel) sample")
         opt.noise=noiselevel
+        opt.σsignal=0
         p = "data/output/signals_$(opt.series)_noise_$(opt.noise)_allsignal"
         !ispath(p) && mkpath(p)
         Random.seed!(opt.seed)

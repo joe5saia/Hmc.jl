@@ -859,7 +859,7 @@ end
 
 
 function estimatesignals!(opt)
-    if opt.σsignal == 0
+    if isapprox(opt.σsignal, 0)
         samples = estimatemodel(opt)
         opt.σsignal= mean(samples.σ)*opt.noise
     end
