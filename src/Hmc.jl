@@ -696,8 +696,6 @@ function saveinsampleforecasts(forecasts, fname)
     CSV.write(fname, df)
 end
 
-
-
 function basicsave(data, dates, fname, dataheader; signal::Array{Float64,2} = [], signalids::Array{Int,1} = [], precision=5)
     header = vcat([:date], Symbol.(dataheader))
     for i in 1:size(signal,2)
@@ -732,11 +730,11 @@ function saveresults(samples, opt, dir; hassignals = false)
         basicsave(reshape(samples.A,Ndraws,:), samples.obsdates, joinpath(dir, "filtered_trans_probs_$(Hmc.enddate(opt)).csv"), h2; signal = samples.signalvals, signalids = samples.signalids)
         basicsave(samples.forecasts, samples.obsdates, joinpath(dir, "forecasts_$(Hmc.enddate(opt)).csv"), h3; signal = samples.signalvals, signalids = samples.signalids)
     else
-        basicsave(samples[1], samples.obsdates, "data/output/$(opt.series)/filtered_means_$(Hmc.enddate(opt)).csv", h1, signal= Array{Float64,2}(undef,0,0), precision=5)
-        basicsave(samples[2], samples.obsdates, "data/output/$(opt.series)/filtered_variances_$(Hmc.enddate(opt)).csv", h1, signal= Array{Float64,2}(undef,0,0), precision=5)
-        basicsave(reshape(samples.πb[:,end,:],opt.Nrun,:), samples.obsdates, "data/output/$(opt.series)/filtered_state_probs_$(enddate(opt)).csv", h1, signal= Array{Float64,2}(undef,0,0), precision=5)
-        basicsave(reshape(samples.A,opt.Nrun,:), samples.obsdates, "data/output/$(opt.series)/filtered_trans_probs_$(enddate(opt)).csv", h2, signal= Array{Float64,2}(undef,0,0), precision=5)
-        basicsave(samples.forecasts, samples.obsdates, "data/output/$(opt.series)/forecasts_$(enddate(opt)).csv", h3, signal= Array{Float64,2}(undef,0,0), precision=5)
+        basicsave(samples[1], samples.obsdates, "data/output/$(opt.series)/filtered_means_$(Hmc.enddate(opt)).csv", h1; signal= Array{Float64,2}(undef,0,0), precision=5)
+        basicsave(samples[2], samples.obsdates, "data/output/$(opt.series)/filtered_variances_$(Hmc.enddate(opt)).csv", h1; signal= Array{Float64,2}(undef,0,0), precision=5)
+        basicsave(reshape(samples.πb[:,end,:],opt.Nrun,:), samples.obsdates, "data/output/$(opt.series)/filtered_state_probs_$(enddate(opt)).csv", h;, signal= Array{Float64,2}(undef,0,0), precision=5)
+        basicsave(reshape(samples.A,opt.Nrun,:), samples.obsdates, "data/output/$(opt.series)/filtered_trans_probs_$(enddate(opt)).csv", h2; signal= Array{Float64,2}(undef,0,0), precision=5)
+        basicsave(samples.forecasts, samples.obsdates, "data/output/$(opt.series)/forecasts_$(enddate(opt)).csv"; h3, signal= Array{Float64,2}(undef,0,0), precision=5)
     end
 end
 
