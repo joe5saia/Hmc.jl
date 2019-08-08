@@ -116,7 +116,8 @@ if false
     Random.seed!(opt.seed)
     samples = Hmc.estimatemodel(opt)
     Hmc.saveresults(samples, opt, p; hassignals = false)
-    
+end
+if true
     #Estimate model for each horizon we want with signals for different noise levels
     signallength = 1
     opt.sampleRange = startindex:dateindex+signallength
@@ -147,13 +148,12 @@ if false
     end
 end
 
-if true
+if false
     ## Make everything a signal 
-
     opt.sampleRange = startindex:dateindex
     opt.signalRange = startindex:dateindex
     opt.signalSave = dateindex-1:dateindex
-    for noiselevel in [3.0]
+    for noiselevel in [0.1 1.0 3.0]
         println("Running noise = $(noiselevel) sample")
         opt.noise=noiselevel
         p = "data/output/signals_$(opt.series)_noise_$(opt.noise)_allsignal"
