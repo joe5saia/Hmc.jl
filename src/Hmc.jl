@@ -72,6 +72,16 @@ mutable struct estopt
     end
 end
 
+function update_itators!(opt::estopt)
+    opt.obsRange = setdiff(opt.sampleRange, opt.signalRange)
+    opt.sampleRangeit = [CartesianIndex(i) for i in opt.sampleRange]
+    opt.sampleRangeits2 = [CartesianIndex(i) for i in opt.sampleRange[2:end]] #range starting at 2
+    opt.sampleRangeite2 =  [CartesianIndex(i) for i in opt.sampleRange[1:end-1]]#range ending 1 early
+    opt.sampleRangeitback = [CartesianIndex(i) for i in reverse(opt.sampleRange[1:end-1])] #range starting from second to last going to 1
+    opt.obsRangeit = [CartesianIndex(i) for i in opt.obsRange]
+    opt.signalRangeit = [CartesianIndex(i) for i in opt.signalRange]
+end
+
 function makey(x::estopt)
     return x.rawdata[x.sampleRange]
 end
@@ -392,7 +402,6 @@ function forwardupdate_P!(P::AbstractArray{Float64,3}, π::AbstractMatrix{Float6
         π[1,s] += P[1,r,s]
     end
 
-    #println("pi 1 is $(π[1,:])")
 
     for (t,t2) in zip(opt.sampleRangeits2, opt.sampleRangeit)
         total = 0.0
@@ -410,24 +419,23 @@ function forwardupdate_P!(P::AbstractArray{Float64,3}, π::AbstractMatrix{Float6
             #println("P is $(P[t,:,:])")
         
         else
-        
             #println("in sig for $t")
             for s in 1:hp.D, r in 1:hp.D
                 P[t,r,s] = π[t2,r] * A[r,s] * pdf(distsig[s], Y[t])
                 total += P[t,r,s]
            end
-
         end
 
         for s in 1:hp.D, r in 1:hp.D
             P[t,r,s] /= total
             π[t,s] += P[t,r,s]
         end
+        #println("pi t is $(π[t,:])")
 
         isapprox(total, 0) && @warn "Forwardupdate_P has a near 0 total at step $(t). P is $(P[t,:,:])"
     end
     #println("Last observation probability is $(pdf.(distobs, Y[opt.endIndex]))")
-    #println("π[t] is $(π[end,:])")
+    println("π[t] is $(π[end,:])")
 
 end
 
@@ -696,7 +704,7 @@ function saveinsampleforecasts(forecasts, fname)
     CSV.write(fname, df)
 end
 
-function basicsave(data, dates, fname, dataheader; signal::Array{Float64,2} = [], signalids::Array{Int,1} = [], precision=5)
+function basicsave(data, dates, fname, dataheader; signal::Array{Float64,2} = Array{Float64,2}(undef,0,0), signalids::Array{Int,1} = Array{Int,1}(undef,0), precision=5)
     header = vcat([:date], Symbol.(dataheader))
     for i in 1:size(signal,2)
         push!(header, Symbol("signal_$i"))
@@ -732,9 +740,9 @@ function saveresults(samples, opt, dir; hassignals = false)
     else
         basicsave(samples[1], samples.obsdates, "data/output/$(opt.series)/filtered_means_$(Hmc.enddate(opt)).csv", h1; signal= Array{Float64,2}(undef,0,0), precision=5)
         basicsave(samples[2], samples.obsdates, "data/output/$(opt.series)/filtered_variances_$(Hmc.enddate(opt)).csv", h1; signal= Array{Float64,2}(undef,0,0), precision=5)
-        basicsave(reshape(samples.πb[:,end,:],opt.Nrun,:), samples.obsdates, "data/output/$(opt.series)/filtered_state_probs_$(enddate(opt)).csv", h;, signal= Array{Float64,2}(undef,0,0), precision=5)
+        basicsave(reshape(samples.πb[:,end,:],opt.Nrun,:), samples.obsdates, "data/output/$(opt.series)/filtered_state_probs_$(enddate(opt)).csv", h3; signal= Array{Float64,2}(undef,0,0), precision=5)
         basicsave(reshape(samples.A,opt.Nrun,:), samples.obsdates, "data/output/$(opt.series)/filtered_trans_probs_$(enddate(opt)).csv", h2; signal= Array{Float64,2}(undef,0,0), precision=5)
-        basicsave(samples.forecasts, samples.obsdates, "data/output/$(opt.series)/forecasts_$(enddate(opt)).csv"; h3, signal= Array{Float64,2}(undef,0,0), precision=5)
+        basicsave(samples.forecasts, samples.obsdates, "data/output/$(opt.series)/forecasts_$(enddate(opt)).csv", h3; signal= Array{Float64,2}(undef,0,0), precision=5)
     end
 end
 

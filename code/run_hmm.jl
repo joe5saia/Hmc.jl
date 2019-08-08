@@ -117,12 +117,13 @@ if true
     samples = Hmc.estimatemodel(opt)
     Hmc.saveresults(samples, opt, p; hassignals = false)
 end
-if false
+if true
     #Estimate model for each horizon we want with signals for different noise levels
     signalLen = 1
     opt.sampleRange = startindex:dateindex+signalLen
     opt.signalRange = dateindex+1:dateindex+signalLen
     opt.signalSave = dateindex+1:dateindex+signalLen
+    Hmc.update_itators!(opt)
     for noiselevel in [0.1 1.0 3.0]
         println("Running noise = $(noiselevel) sample")
         opt.noise=noiselevel
@@ -133,11 +134,13 @@ if false
         samples = Hmc.estimatesignals!(opt)
         Hmc.saveresults(samples, opt, p; hassignals = true)
     end
-
+end
+if true
     signalLen = 12
     opt.sampleRange = startindex:dateindex+signalLen
     opt.signalRange = dateindex+1:dateindex+signalLen
     opt.signalSave = dateindex+1:dateindex+signalLen
+    Hmc.update_itators!(opt)
     for noiselevel in [0.1 1.0 3.0]
         println("Running noise = $(noiselevel) sample")
         opt.noise=noiselevel
@@ -150,11 +153,12 @@ if false
     end
 end
 
-if false
+if true
     ## Make everything a signal 
     opt.sampleRange = startindex:dateindex
     opt.signalRange = startindex:dateindex
     opt.signalSave = dateindex-1:dateindex
+    Hmc.update_itators!(opt)
     for noiselevel in [0.1 1.0 3.0]
         println("Running noise = $(noiselevel) sample")
         opt.noise=noiselevel
