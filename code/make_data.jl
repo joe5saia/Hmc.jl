@@ -17,4 +17,4 @@ using Hmc
 ## Read in data
 rawdata = DataFrame(load("data/raw/sgs_data.dta"))
 rawdata[!, :date] = makedate.(rawdata[!, :date])
-CSV.write("data/processed/inlfation.csv", rawdata)
+CSV.write("data/processed/inflation.csv", rawdata)
