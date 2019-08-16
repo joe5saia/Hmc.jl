@@ -34,10 +34,34 @@ function plotchain(date, theme = Theme())
     Guide.title("Distribution of Parameter Draws"), 
     Guide.manual_color_key("Legend", "1:" .* ["100,000", "150,000", "200,000","250,000"], colors([1,2,3,5])),
     )
-return fig
+  return fig
 end
+
+
 
 d = Date(2009,06)
 plotchain(d, t) |> PDF("plots/chain_mean_$(d).pdf")
 
 
+
+function plotchainmean(date, theme = Theme())
+  p = joinpath(root_dir, "data/output/official")
+  df = CSV.read(joinpath(p, "filtered_means_$(date).csv"), copycols=true)
+  df[!,:cummean] = cumsum(df[!,:state_3])
+  for i in 1:size(df,1)
+    df[i,:cummean] /= i
+  end
+  fig = plot(
+    df[1:10_000,:],
+    y = :cummean, 
+    Geom.line,
+    theme,
+    Guide.ylabel("Cummlative Mean"), 
+    Guide.title("Cumliative mean") 
+    )
+  return fig
+end
+
+
+d = Date(2009,01)
+plotchainmean(d, t) |> PDF("plots/chain_mean_$(d).pdf")
