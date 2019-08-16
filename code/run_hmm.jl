@@ -100,17 +100,17 @@ else
         endIndex=dateindex,
         horizons=[12],
         D = 3,
-        burnin = 20_000,
-        Nrun = 10_000,
-        signalburnin = 10_000,
-        signalNrun = 5_000,
-        noiseSamples = 300,
+        burnin = 100_000,
+        Nrun = 250_000,
+        signalburnin = 100_000,
+        signalNrun = 250_000,
+        noiseSamples = 100,
         series = series
     )
 end
 
 
-if true
+if false
     #Estimate model for each horizion we want with no signals
     println("Estimating base model without Signals. Date range is $(Hmc.startdate(opt)) to $(Hmc.enddate(opt))")
     p = "data/output/$(opt.series)/"
@@ -119,7 +119,7 @@ if true
     samples = Hmc.estimatemodel(opt)
     Hmc.saveresults(samples, opt, p; hassignals = false)
 end
-if true
+if false
     #Estimate model for each horizon we want with signals for different noise levels
     signalLen = 1
     opt.sampleRange = startindex:dateindex+signalLen
@@ -137,7 +137,7 @@ if true
         Hmc.saveresults(samples, opt, p; hassignals = true)
     end
 end
-if true
+if false
     signalLen = 12
     opt.sampleRange = startindex:dateindex+signalLen
     opt.signalRange = dateindex+1:dateindex+signalLen
@@ -161,7 +161,8 @@ if true
     opt.signalRange = startindex:dateindex
     opt.signalSave = dateindex-1:dateindex
     Hmc.update_itators!(opt)
-    for noiselevel in [0.1 1.0 3.0]
+    #for noiselevel in [0.1 0.3 1.0]
+    for noiselevel in [0.1]
         println("Running noise = $(noiselevel) sample")
         opt.noise=noiselevel
         opt.σsignal=0
