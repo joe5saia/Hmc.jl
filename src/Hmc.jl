@@ -1089,8 +1089,9 @@ function calcdispersion(datadir)
         CSV.write(joinpath(datadir, var * "_dispersion.csv"), df2)
     end
 end
-
-
+function blank()
+  return 1
+end
 
 
 end # module

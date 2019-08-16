@@ -13,6 +13,8 @@ if ispath("/moto/sscc/projects/biasedexpectations")
     root_dir = "/moto/sscc/projects/biasedexpectations"
 elseif ispath("/research/hmc")
     root_dir = "/research/hmc"
+elseif ispath("/app")
+    root_dir = "/app"
 else 
     @error "No valid directory for root directory found"
     exit(1)

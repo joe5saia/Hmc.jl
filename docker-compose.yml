@@ -1,0 +1,8 @@
+version: '3'
+
+services:
+  hmcjulia:
+    build: .
+    volumes:
+      - .:/app
+    command: julia -O3 code/run_hmm.jl official 230 test
