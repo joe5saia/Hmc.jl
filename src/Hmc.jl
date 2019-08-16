@@ -435,7 +435,7 @@ function forwardupdate_P!(P::AbstractArray{Float64,3}, π::AbstractMatrix{Float6
         isapprox(total, 0) && @warn "Forwardupdate_P has a near 0 total at step $(t). P is $(P[t,:,:])"
     end
     #println("Last observation probability is $(pdf.(distobs, Y[opt.endIndex]))")
-    println("π[t] is $(π[end,:])")
+    #println("π[t] is $(π[end,:])")
 
 end
 
