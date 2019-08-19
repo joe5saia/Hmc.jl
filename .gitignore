@@ -14,4 +14,5 @@ scratch/*
 *.fls
 
 data/output/
-!*summary.csv
+!data/output/signals_official_noise_0.?_allsignal/*summary.csv
+!data/output/signals_official_noise_0.?_allsignal/*dispersion.csv
