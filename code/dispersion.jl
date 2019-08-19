@@ -47,7 +47,7 @@ end
 if true
 
 for s in ["official"]
-    for n in [0.1 1.0 3.0], m in [12]
+    for n in [0.1 0.3 0.6]
         p = joinpath(root_dir, "data/output/signals_$(s)_noise_$(n)_allsignal")
         if ispath(p)
             Hmc.calcdispersion(p)

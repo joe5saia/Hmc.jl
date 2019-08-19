@@ -162,7 +162,7 @@ if true
     opt.signalSave = dateindex-1:dateindex
     Hmc.update_itators!(opt)
     #for noiselevel in [0.1 0.3 1.0]
-    for noiselevel in [0.1]
+    for noiselevel in [0.6]
         println("Running noise = $(noiselevel) sample")
         opt.noise=noiselevel
         opt.σsignal=0
