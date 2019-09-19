@@ -13,8 +13,15 @@ scratch/*
 *.synctex.gz
 *.fls
 
+data/output/signals_official_noise_0.?_len_*/*
 data/output/signals_official_noise_0.?_allsignal/*
 !data/output/signals_official_noise_0.?_allsignal/*summary.csv
 !data/output/signals_official_noise_0.?_allsignal/*dispersion.csv
 data/output/official/*
 !data/output/official/*summary.csv
+
+data/output/signals_official_noise_0.?_allsignal/*
+!data/output/signals_official_noise_0.?_allsignal/*summary.csv
+!data/output/signals_official_noise_0.?_allsignal/*dispersion.csv
+data/output/alter/*
+!data/output/alter/*summary.csv
