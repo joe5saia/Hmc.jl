@@ -25,14 +25,8 @@ Pkg.activate(root_dir)
 push!(LOAD_PATH, joinpath(root_dir, "src"))
 using Hmc
 
-if false
-for s in ["official"]
-    for n in ["0.01"]
-        Hmc.calcdispersion(joinpath(root_dir, "data/output/signals/$(s)/noise_$(n)"))
-    end
-end
 
 if true
     p = joinpath(root_dir, "data/output/official")
-    
+    Hmc.calccorr(p; startyear = 1980, endyear = 2018, startmonth = 1, endmonth = 2) 
 end

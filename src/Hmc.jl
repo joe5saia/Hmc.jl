@@ -1091,7 +1091,7 @@ function calcdispersion(datadir)
     end
 end
 
-function calccorr(datadir; startyear = 1979, endyear = 2018, startmonth = 12, endmonth = 3)
+function calccorr(datadir; startyear = 1980, endyear = 2018, startmonth = 1, endmonth = 2)
     year = startyear
     month = startmonth
     data = []
@@ -1107,10 +1107,10 @@ function calccorr(datadir; startyear = 1979, endyear = 2018, startmonth = 12, en
         df2 = DataFrame(CSV.read(f))
         rename!(x -> Symbol(replace(String(x), "state_" => "σ" )), df2)
 
-        #f = joinpath(datadir, "filtered_state_probs_" * string(year) * "-" * string(month, pad=2) * "-01.csv")
-        #println("Reading in " * f)
-        #df3 = DataFrame(CSV.read(f))
-        #rename!(x -> Symbol(replace(String(x), "state_" => "π" )), df3)
+        f = joinpath(datadir, "filtered_state_probs_" * string(year) * "-" * string(month, pad=2) * "-01.csv")
+        println("Reading in " * f)
+        df3 = DataFrame(CSV.read(f))
+        rename!(x -> Symbol(replace(String(x), "state_" => "π" )), df3)
 
         f = joinpath(datadir, "forecasts_" * string(year) * "-" * string(month, pad=2) * "-01.csv")
         println("Reading in " * f)
@@ -1135,7 +1135,7 @@ function calccorr(datadir; startyear = 1979, endyear = 2018, startmonth = 12, en
         end
     end
 
-    XLSX.openxlsx("/research/hmc/test.xlsx", mode="w") do xf
+    XLSX.openxlsx(joinpath(datadir, "correlations.xlsx"), mode="w") do xf
         # Save each correlation matrix to a new excel sheet
         for i in 1:length(data)
             XLSX.addsheet!(xf, data[i][1])
