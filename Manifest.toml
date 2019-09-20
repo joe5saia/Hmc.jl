@@ -205,6 +205,12 @@ git-tree-sha1 = "0513f1a8991e9d83255e0140aace0d0fc4486600"
 uuid = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
 version = "0.8.0"
 
+[[EzXML]]
+deps = ["BinaryProvider", "Libdl", "Printf"]
+git-tree-sha1 = "aed48d722e528bc634bd36a7d0e090fa2952a3c0"
+uuid = "8f5d6c58-4d21-5cfd-889c-e3ad7ee6a615"
+version = "0.9.4"
+
 [[FFTW]]
 deps = ["AbstractFFTs", "BinaryProvider", "Conda", "Libdl", "LinearAlgebra", "Reexport", "Test"]
 git-tree-sha1 = "e1a479d3c972f20c9a70563eec740bbfc786f515"
@@ -665,3 +671,15 @@ deps = ["LinearAlgebra", "Random", "SparseArrays", "Test"]
 git-tree-sha1 = "21772c33b447757ec7d3e61fcdfb9ea5c47eedcf"
 uuid = "efce3f68-66dc-5838-9240-27a6d6f5f9b6"
 version = "0.4.1"
+
+[[XLSX]]
+deps = ["Dates", "EzXML", "Printf", "ZipFile"]
+git-tree-sha1 = "63c5ad429b4da299618307163c986aae0b2a410d"
+uuid = "fdbf4ff8-1666-58a4-91e7-1b58723a45e0"
+version = "0.5.7"
+
+[[ZipFile]]
+deps = ["BinaryProvider", "Libdl", "Printf"]
+git-tree-sha1 = "580ce62b6c14244916cc28ad54f8a2e2886f843d"
+uuid = "a5390f91-8eb1-5f08-bee0-b1d1ffed6cea"
+version = "0.8.3"

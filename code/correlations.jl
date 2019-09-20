@@ -32,28 +32,7 @@ for s in ["official"]
     end
 end
 
-for s in ["official"]
-    for n in [0.1 1.0 3.0], m in [12]
-        p = joinpath(root_dir, "data/output/signals_$(s)_noise_$(n)_len_$(m)")
-        if ispath(p)
-            Hmc.calcdispersion(p)
-        else
-            println(p * " is not a valid path" )
-        end
-    end
-end
-end
-
 if true
-
-for s in ["official"]
-    for n in [0.1 1.0 3.0], m in [12]
-        p = joinpath(root_dir, "data/output/signals_$(s)_noise_$(n)_allsignal")
-        if ispath(p)
-            Hmc.calcdispersion(p)
-        else
-            println(p * " is not a valid path" )
-        end
-    end
-end
+    p = joinpath(root_dir, "data/output/official")
+    
 end

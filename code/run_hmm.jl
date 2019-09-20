@@ -110,7 +110,7 @@ else
 end
 
 
-if false
+if true
     #Estimate model for each horizion we want with no signals
     println("Estimating base model without Signals. Date range is $(Hmc.startdate(opt)) to $(Hmc.enddate(opt))")
     p = "data/output/$(opt.series)/"
@@ -155,7 +155,7 @@ if false
     end
 end
 
-if true
+if false
     ## Make everything a signal 
     opt.sampleRange = startindex:dateindex
     opt.signalRange = startindex:dateindex
