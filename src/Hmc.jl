@@ -12,7 +12,7 @@ using CSV
 using Distributed
 using SharedArrays
 using Glob
-
+using XLSX
 
 mutable struct estopt
     rawdata::AbstractArray{Float64,1}
@@ -1134,18 +1134,28 @@ function calccorr(datadir; startyear = 1980, endyear = 2018, startmonth = 1, end
             year += 1
         end
     end
-
-    XLSX.openxlsx(joinpath(datadir, "correlations.xlsx"), mode="w") do xf
+    println("All data read in:")
+    f = joinpath(datadir, "correlations.xlsx")
+    println("Opening $(f)")
+    XLSX.openxlsx(f, mode="w") do xf
+        println("XLSX sheet opened")
         # Save each correlation matrix to a new excel sheet
         for i in 1:length(data)
-            XLSX.addsheet!(xf, data[i][1])
-            sheet = xf[data[i][1]]
+            println("Saving sheet $i")
+            sname = data[i][1][1:4] * "_" * data[i][1][6:7]
+            println("sheet name is $(sname)")
+            XLSX.addsheet!(xf, sname)
+            println("added sheet")
+            sheet = xf[sname]
+            println("opened sheet")
             sheet["A1"] = data[i]
+            println("Sheet written")
         end
         # On the first sheet save all the forecast correlations
         sheet = xf[1]
         sheet["B1", dim=2] = data[1][1,2:end]
         for i in 1:length(data)
+            println("Saving  forecast $i")
             sheet["A$(i+1)"] = data[i][1,1] # Date
             sheet["B$(i+1)", dim=2] = data[i][end,2:end] # Data
         end

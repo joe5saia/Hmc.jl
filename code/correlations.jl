@@ -28,5 +28,5 @@ using Hmc
 
 if true
     p = joinpath(root_dir, "data/output/official")
-    Hmc.calccorr(p; startyear = 1980, endyear = 2018, startmonth = 1, endmonth = 2) 
+    Hmc.calccorr(p; startyear = 1980, endyear = 2017, startmonth = 1, endmonth = 12) 
 end
