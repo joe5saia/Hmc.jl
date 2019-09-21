@@ -724,7 +724,7 @@ end
 function saveresults(samples, opt, dir; hassignals = false)
     ## Save draws to file
     h1 = [Symbol("state_$i") for i in 1:opt.D]
-    h2 = vec([Symbol("trans_$(j)_$(i)") for i in 1:opt.D, j in 1:opt.D])
+    h2 = vec([Symbol("trans_$(i)_$(j)") for i in 1:opt.D, j in 1:opt.D])
     h3 = Array{Symbol,1}(undef,size(samples.forecasts,2))
     for (j,h) in enumerate(opt.horizons)
         h3[2 * (j - 1) + 1] = Symbol("forecast_$h")
