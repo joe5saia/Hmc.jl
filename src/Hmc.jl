@@ -1120,7 +1120,7 @@ function calccorr(datadir; startyear = 1980, endyear = 2018, startmonth = 1, end
         println("Reading in " * f)
         df5 = DataFrame(CSV.read(f))
 
-        df = [df1[!,2:end] df2[!,2:end] df5[!,2:end] df4[!,[2]]]
+        df = [df1[!,2:end] df2[!,2:end] df3[!,2:end] df5[!,2:end] df4[!,[2]]]
         n = size(df,2)
         ρ = Matrix{Any}(undef, n+1, n+1)
         ρ[2:end, 2:end] = cor(Matrix(df))
@@ -1143,13 +1143,13 @@ function calccorr(datadir; startyear = 1980, endyear = 2018, startmonth = 1, end
         for i in 1:length(data)
             println("Saving sheet $i")
             sname = data[i][1][1:4] * "_" * data[i][1][6:7]
-            println("sheet name is $(sname)")
+#            println("sheet name is $(sname)")
             XLSX.addsheet!(xf, sname)
-            println("added sheet")
+#            println("added sheet")
             sheet = xf[sname]
-            println("opened sheet")
+#            println("opened sheet")
             sheet["A1"] = data[i]
-            println("Sheet written")
+#            println("Sheet written")
         end
         # On the first sheet save all the forecast correlations
         sheet = xf[1]
