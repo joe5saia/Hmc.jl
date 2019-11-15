@@ -12,7 +12,7 @@ using CSV
 using Distributed
 using SharedArrays
 using Glob
-
+using XLSX
 
 mutable struct estopt
     rawdata::AbstractArray{Float64,1}
@@ -724,7 +724,7 @@ end
 function saveresults(samples, opt, dir; hassignals = false)
     ## Save draws to file
     h1 = [Symbol("state_$i") for i in 1:opt.D]
-    h2 = vec([Symbol("trans_$(j)_$(i)") for i in 1:opt.D, j in 1:opt.D])
+    h2 = vec([Symbol("trans_$(i)_$(j)") for i in 1:opt.D, j in 1:opt.D])
     h3 = Array{Symbol,1}(undef,size(samples.forecasts,2))
     for (j,h) in enumerate(opt.horizons)
         h3[2 * (j - 1) + 1] = Symbol("forecast_$h")
@@ -738,11 +738,12 @@ function saveresults(samples, opt, dir; hassignals = false)
         basicsave(reshape(samples.A,Ndraws,:), samples.obsdates, joinpath(dir, "filtered_trans_probs_$(Hmc.enddate(opt)).csv"), h2; signal = samples.signalvals, signalids = samples.signalids)
         basicsave(samples.forecasts, samples.obsdates, joinpath(dir, "forecasts_$(Hmc.enddate(opt)).csv"), h3; signal = samples.signalvals, signalids = samples.signalids)
     else
-        basicsave(samples[1], samples.obsdates, "data/output/$(opt.series)/filtered_means_$(Hmc.enddate(opt)).csv", h1; signal= Array{Float64,2}(undef,0,0), precision=5)
-        basicsave(samples[2], samples.obsdates, "data/output/$(opt.series)/filtered_variances_$(Hmc.enddate(opt)).csv", h1; signal= Array{Float64,2}(undef,0,0), precision=5)
-        basicsave(reshape(samples.πb[:,end,:],opt.Nrun,:), samples.obsdates, "data/output/$(opt.series)/filtered_state_probs_$(enddate(opt)).csv", h3; signal= Array{Float64,2}(undef,0,0), precision=5)
-        basicsave(reshape(samples.A,opt.Nrun,:), samples.obsdates, "data/output/$(opt.series)/filtered_trans_probs_$(enddate(opt)).csv", h2; signal= Array{Float64,2}(undef,0,0), precision=5)
-        basicsave(samples.forecasts, samples.obsdates, "data/output/$(opt.series)/forecasts_$(enddate(opt)).csv", h3; signal= Array{Float64,2}(undef,0,0), precision=5)
+        odir = "data/output/$(opt.series)/"
+        basicsave(samples.μ, samples.obsdates, odir * "filtered_means_$(Hmc.enddate(opt)).csv", h1;  precision=5)
+        basicsave(samples.σ, samples.obsdates, odir * "filtered_variances_$(Hmc.enddate(opt)).csv", h1; precision=5)
+        basicsave(samples.πb[:,end,:], samples.obsdates, odir * "filtered_state_probs_$(Hmc.enddate(opt)).csv", h1; precision=5)
+        basicsave(reshape(samples.A,opt.Nrun,:), samples.obsdates, odir * "filtered_trans_probs_$(Hmc.enddate(opt)).csv", h2; signal= Array{Float64,2}(undef,0,0), precision=5)
+        basicsave(samples.forecasts, samples.obsdates, odir * "forecasts_$(Hmc.enddate(opt)).csv", h3; signal= Array{Float64,2}(undef,0,0), precision=5)
     end
 end
 
@@ -1089,8 +1090,76 @@ function calcdispersion(datadir)
         CSV.write(joinpath(datadir, var * "_dispersion.csv"), df2)
     end
 end
-function blank()
-  return 1
+
+function calccorr(datadir; startyear = 1980, endyear = 2018, startmonth = 1, endmonth = 2)
+    year = startyear
+    month = startmonth
+    data = []
+    while(!((year == endyear) & (month == endmonth) ))
+        println("Year = $(year), Month = $(month)")
+        f = joinpath(datadir, "filtered_means_" * string(year) * "-" * string(month, pad=2) * "-01.csv")
+        println("Reading in " * f)
+        df1 = DataFrame(CSV.read(f))
+        rename!(x -> Symbol(replace(String(x), "state_" => "μ" )), df1)
+       
+        f = joinpath(datadir, "filtered_variances_" * string(year) * "-" * string(month, pad=2) * "-01.csv")
+        println("Reading in " * f)
+        df2 = DataFrame(CSV.read(f))
+        rename!(x -> Symbol(replace(String(x), "state_" => "σ" )), df2)
+
+        f = joinpath(datadir, "filtered_state_probs_" * string(year) * "-" * string(month, pad=2) * "-01.csv")
+        println("Reading in " * f)
+        df3 = DataFrame(CSV.read(f))
+        rename!(x -> Symbol(replace(String(x), "state_" => "π" )), df3)
+
+        f = joinpath(datadir, "forecasts_" * string(year) * "-" * string(month, pad=2) * "-01.csv")
+        println("Reading in " * f)
+        df4 = DataFrame(CSV.read(f))
+
+        f = joinpath(datadir, "filtered_trans_probs_" * string(year) * "-" * string(month, pad=2) * "-01.csv")
+        println("Reading in " * f)
+        df5 = DataFrame(CSV.read(f))
+
+        df = [df1[!,2:end] df2[!,2:end] df3[!,2:end] df5[!,2:end] df4[!,[2]]]
+        n = size(df,2)
+        ρ = Matrix{Any}(undef, n+1, n+1)
+        ρ[2:end, 2:end] = cor(Matrix(df))
+        ρ[2:end, 1] =  string.(names(df))
+        ρ[1, 2:end] =  string.(names(df))
+        ρ[1,1] = string(df1[1,1])
+        push!(data, ρ)
+        month += 1
+        if month > 12 
+            month = 1
+            year += 1
+        end
+    end
+    println("All data read in:")
+    f = joinpath(datadir, "correlations.xlsx")
+    println("Opening $(f)")
+    XLSX.openxlsx(f, mode="w") do xf
+        println("XLSX sheet opened")
+        # Save each correlation matrix to a new excel sheet
+        for i in 1:length(data)
+            println("Saving sheet $i")
+            sname = data[i][1][1:4] * "_" * data[i][1][6:7]
+#            println("sheet name is $(sname)")
+            XLSX.addsheet!(xf, sname)
+#            println("added sheet")
+            sheet = xf[sname]
+#            println("opened sheet")
+            sheet["A1"] = data[i]
+#            println("Sheet written")
+        end
+        # On the first sheet save all the forecast correlations
+        sheet = xf[1]
+        sheet["B1", dim=2] = data[1][1,2:end]
+        for i in 1:length(data)
+            println("Saving  forecast $i")
+            sheet["A$(i+1)"] = data[i][1,1] # Date
+            sheet["B$(i+1)", dim=2] = data[i][end,2:end] # Data
+        end
+    end
 end
 
 
