@@ -1,0 +1,68 @@
+\documentclass[12pt]{article}
+\input{preamble.tex}
+
+\begin{document}
+
+\section{Notation}
+
+\begin{enumerate}
+  \item $i \in \{1,2,3\} $ denotes the state of the Markov process
+  \item $Y_t$ is an observation of inflation at time $t$
+  \item $X_t \in \{1,2,3\}$ is the state of the Markov process at time $t$
+  \item $\Theta$ is a vector of all parameters; state means, state variances, transistion probabilties, 
+  and a $T\times3$ matrix of state probabilties for each period ($\mu, \sigma^2, A, \pi$)
+  \item $\Phi(\cdot)$ is the CDF of the standard Normal
+  \item $F_t$ is the belief of the agent at time $t$ for the distribution of the parmaters 
+\end{enumerate}
+
+We have the following by definition of the Markov process
+\[
+  Y|i \sim \N(\mu_i, \sigma^2_i)
+\]
+
+\begin{align*}
+  Pr_t(Y_t \leq y) &= \int_{\theta \in \Theta}Pr(Y_t \leq y|\theta)\dd F_t(\theta) \\
+  Pr_t(Y_t \leq y) &= \int_{\theta \in \Theta} \Phi\left( \frac{y-\mu}{\sigma} \right) \dd F_t(\theta) \\
+  Pr_t(Y_t \leq y) &= \E_{\theta \sim F_t} \left[ \Phi\left( \frac{y-\mu}{\sigma} \right)  \right]
+  \intertext{When $t \leq T$, we have }
+  \E_{\theta \sim F_t} \left[ \Phi\left( \frac{y-\mu}{\sigma} \right)  \right] &=
+      \E_{\theta \sim F_t} \sum_{i=1}^3 \Phi\left( \frac{y-\mu_i}{\sigma_i} \right) \pi_t(i)
+\end{align*}
+
+Now we want a function $f : \R \times \Delta(\Theta) \to \R $ such that for a given $F \in \Delta(\Theta)$,
+$f$ maps a standard normal to $Z$. Let $Z \sim \N(0,1)$, then we want a function $f$ such that 
+\[
+ Y_t = f(Z; F_t)  
+\]
+
+Note that 
+\begin{align*}
+  Pr_t(Y_t \leq y) &= Pr(f(Z; F_t) \leq y) \\
+  Pr_t(Y_t \leq y) &= Pr(Z \leq f^{-1}(y; F_t)) \\
+  Pr_t(Y_t \leq y) &= \Phi\left(f^{-1}(y;F_t)\right)
+\end{align*}
+
+Combining results we have 
+
+\begin{align*}
+  \Phi\left(f^{-1}(y;F_t)\right) &= \E_{\theta \sim F_t} \left[ \Phi\left( \frac{y-\mu_i}{\sigma_i} \right)  \right]
+  \intertext{Implying}
+  f^{-1}(y;F_t)&= \Phi^{-1}\left(  \E_{\theta \sim F_t} \left[ \Phi\left( \frac{y-\mu}{\sigma} \right)  \right] \right) \\
+  f^{-1}(y;F_t)&= \Phi^{-1}\left( \E_{\theta \sim F_t} \sum_{i=1}^3 \Phi\left( \frac{y-\mu_i}{\sigma_i} \right) \pi_t(i) \right) \\
+\end{align*}
+
+
+\begin{equation}
+  \label{eqn:1}
+  \E_{\theta \sim F_t} \sum_{i=1}^3 \Phi\left( \frac{y-\mu_i}{\sigma_i} \right) \pi_t(i)
+\end{equation}
+can be estimated via gibbs sampling. For each gibb's sweep calculate the term
+\[ 
+  \sum_{i=1}^3 \Phi\left( \frac{y-\mu_i}{\sigma_i} \right) \pi_t(i)
+\]
+and average over the sample of these draws. The function $f^{-1}$ can then be estimated 
+by calculating equation \ref{eqn:1} over a grid of $y$.
+
+
+\end{document}
+
