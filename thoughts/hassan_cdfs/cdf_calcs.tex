@@ -63,6 +63,46 @@ can be estimated via gibbs sampling. For each gibb's sweep calculate the term
 and average over the sample of these draws. The function $f^{-1}$ can then be estimated 
 by calculating equation \ref{eqn:1} over a grid of $y$.
 
+\newpage
+\section{Biases}
+
+We want to decompose the bias in the forecast for inflation. Following the above notation with $y_t$ denoting inflation 
+at time $t$ and $\pi_{it}$ denoting the probability of being in state $i$ at time $t$. The agent has a belief 
+about the probability of being in each state for every date in the data (This is true even within a single Gibb's sweep).
+The probability vector for a future state is the probability of transistioning to each future state from the 
+current state(rows of $A^h$), weighted by the probability of being in each current state.
+The inflation forecast is defined as:
+\begin{align}
+  \pi_{t+h} & = \pi_t A^h  & \text{State forecast} \\
+  \E_t[y_{t+h}| \theta \sim F_t] &= \E_t[\pi_{t+h}' \mu| \theta \sim F_t] 
+  \intertext{Replacing the time subscript with the conditional distribution for notational reasons}
+  \E_{F_t}[y_{t+h}] &= \E_{F_t}[\pi_{t+h}' \mu] 
+\end{align}
+$y_{t+h}$ is a function of $\pi_{t+h}$ and $\mu_t$. We can take a first order talyor expansion
+and then calculate the variance of it to give (similiar to delta method techniques):
+\begin{align}
+  \E_{F_t}[y_{t+h}] &\approx \E_{F_t}[\pi_{t+h}'] \E_{F_t}[\mu] + \nabla_{\theta}(y_{t+h})' \Cov_{F_t}(\theta) \nabla_{\theta}(y_{t+h})
+  \label{bias} \\
+  \theta &= [\pi_{t+h}', \mu']' \\
+  \nabla_{\theta}(y_{t+h})' &= [\mu_1, \mu_2, \mu_3, \pi_{1, t+h}, \pi_{2, t+h}, \pi_{3, t+h}]
+\end{align}
+Where the derivatives are evalulated at the true values of of $\theta$
+
+The second term is the bias comming from model uncertainty. This term can be estimated 
+by replacting the terms in $\nabla_{\theta}(y_{t+h})'$ with the expected values across the 
+Gibbs draws. The covariance term can also be calculated by calculating the covariance of the
+terms across Gibbs draws. 
+
+\subsection{Notes}
+In the above derivation, we collapsed the current state probabilties and transition matrices into 
+a single vector of future state probabilties. We can unwind this and expand the $\theta$ vector,
+but this complicates the $\nabla_{\theta}(y_{t+h})'$. This is doable just more complicated. 
+
+\subsection{Questions}
+\begin{enumerate}
+  \item Does this look correct?
+  \item What do you mean by ``correlate with the convexity of $f^{-1}$?'' Specfically, do you have a convexity measure in mind?
+\end{enumerate}
 
 \end{document}
 
