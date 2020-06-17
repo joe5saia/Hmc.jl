@@ -1,6 +1,6 @@
 #HMC.jl
 
-This repo contains code to estimate the implementation of the Hiden Markov Chain model.
+This repo contains code to estimate the implementation of the Hidden Markov Chain model. Code was written against julia 1.0
 
 ## Getting Started
 To download the needed packages do the following
@@ -28,6 +28,7 @@ make it easier to run on the cluster
 
 * `thoughts` contains latex code outline various procedures
 
+* `slurmscripts` contains the slurm shell files to run the commands on the cluster
 
 
 ## Data
@@ -43,7 +44,7 @@ The directory structure should make clear what's being estimated
 * filtered_means_x.csv are the means for the three states for the estimation ending on the given date
 * filtered_variances_x.csv are the variances for the three states for the estimation ending on the given date
 * filtered_state_probs_x.csv are the state probabilities for the three states for the last date of the estimation ending on the given date
-* filtered_trans_probs_x.csv are the transition probabilites for the three states for the estimation ending on the given date. These are outputed by `A[:]` to transform the matrix to a vector and need to be reshaped in column major order (default in Julia and Matlab but not Python)
+* filtered_trans_probs_x.csv are the transition probabilities for the three states for the estimation ending on the given date. These are outputted by `A[:]` to transform the matrix to a vector and need to be reshaped in column major order (default in Julia and Matlab but not Python)
 * smoothed_state_probs_x.csv are the state probabilities for the three states for each date of the sample from the last estimation
 
 
@@ -54,6 +55,5 @@ to determine which inflation series to use in the estimation. Call the script as
 `julia --project=. -p <number of cores to use> run_hmm.jl official` or 
 `julia --project=. -p <number of cores to use> run_hmm.jl alter`
 
-`aggregate.jl` is a secondary script that calculats aggreate statistics
+`aggregate.jl` is a secondary script that calculates aggregate statistics
 
-The root directory has shell scripts that can be submited to Slurm to run the code

@@ -69,7 +69,7 @@ elseif dateindex < startindex
     exit(5)
 end
 
-
+# Set up the options struct
 if (length(ARGS) == 3) && (ARGS[3] == "test")
     ## Run parameters for testing
     println("Using testing run settings\n")
@@ -109,7 +109,7 @@ else
     )
 end
 
-
+# Actually run the estimations that we need
 if true
     #Estimate model for each horizion we want with no signals
     println("Estimating base model without Signals. Date range is $(Hmc.startdate(opt)) to $(Hmc.enddate(opt))")

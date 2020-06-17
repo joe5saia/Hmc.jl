@@ -1,5 +1,6 @@
 scratch/commandtest.jl
 slurm*
+!slurmscripts/
 /.swp
 scratch/*
 
